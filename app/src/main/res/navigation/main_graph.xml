@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_graph"
+    app:startDestination="@id/blankFragment">
+
+    <fragment
+        android:id="@+id/blankFragment"
+        android:name="org.fmm.pocqr.ui.SelectorFragment"
+        android:label="fragment_blank"
+        tools:layout="@layout/fragment_selector" >
+        <action
+            android:id="@+id/action_blankFragment_to_responsibleFragment"
+            app:destination="@id/responsibleFragment" />
+        <action
+            android:id="@+id/action_blankFragment_to_brotherFragment"
+            app:destination="@id/brotherFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/responsibleFragment"
+        android:name="org.fmm.pocqr.ui.ResponsibleFragment"
+        android:label="fragment_responsible"
+        tools:layout="@layout/fragment_responsible" />
+    <fragment
+        android:id="@+id/brotherFragment"
+        android:name="org.fmm.pocqr.ui.BrotherFragment"
+        android:label="fragment_brother"
+        tools:layout="@layout/fragment_brother" />
+</navigation>

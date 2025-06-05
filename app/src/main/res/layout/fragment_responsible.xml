@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+
+    android:orientation="vertical"
+    android:layout_marginVertical="5dp"
+    tools:context=".ui.ResponsibleFragment">
+
+    <!-- TODO: Update blank fragment layout -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="24dp"
+        android:textAlignment="center"
+        android:text="Responsible screen" />
+
+    <EditText
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        android:hint="Name"/>
+
+    <EditText
+        android:id="@+id/community"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        android:hint="Community"/>
+
+    <EditText
+        android:id="@+id/pubKey"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        android:hint="Pub Key"/>
+
+    <EditText
+        android:id="@+id/signature"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        android:hint="Signature"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="end"
+
+        >
+        <Button
+            android:id="@+id/btnPubKey"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="2dp"
+            android:text="Public\nKey" />
+        <Button
+            android:id="@+id/btnQR"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="2dp"
+            android:text="Gen\nQR" />
+        <Button
+            android:id="@+id/btnResponse"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="2dp"
+            android:text="Read\nresponse" />
+        <Button
+            android:id="@+id/btnValidate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="2dp"
+            android:text="Validate TOTP" />
+    </LinearLayout>
+    <TextView
+        android:id="@+id/lblTotpSeed"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="TOTP Seed"
+        android:textSize="12sp"
+        android:labelFor="@id/totpSeed"
+        />
+    <TextView
+        android:id="@+id/totpSeed"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        android:enabled="false"
+        />
+
+    <TextView
+        android:id="@+id/lblTotpCalculated"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="TOTP Calculated"
+        android:textSize="12sp"
+        android:labelFor="@id/totpEntered"
+        />
+    <TextView
+        android:id="@+id/totpEntered"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="24sp"
+        android:enabled="false"
+        />
+
+    <ImageView
+        android:id="@+id/imgCheck"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_check_green" />
+    <ImageView
+        android:id="@+id/imgCheck2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:tint="#00FF00"
+        android:src="@drawable/ic_check" />
+</LinearLayout>
