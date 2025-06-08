@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/clKey"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    >
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/keyName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Key Name"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/hPhoto"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
+        android:contentDescription="key"
+        android:scaleType="centerCrop"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/keyName"
+        app:layout_constraintWidth_percent="0.25"
+        android:src="@drawable/ic_key_vertical"
+         />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/keyType"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Key Type"
+        android:textSize="14sp"
+        android:gravity="center"
+        app:layout_constraintStart_toEndOf="@id/hPhoto"
+        app:layout_constraintEnd_toStartOf="@id/kSize"
+        app:layout_constraintTop_toTopOf="@id/hPhoto"
+        />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/kSize"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Key Size"
+        android:textSize="14sp"
+        android:gravity="center"
+        app:layout_constraintStart_toEndOf="@id/keyType"
+        app:layout_constraintEnd_toStartOf="@id/authenticationRequired"
+        app:layout_constraintTop_toTopOf="@id/hPhoto"
+        />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/authenticationRequired"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="AuthReq"
+        android:textSize="14sp"
+        android:gravity="center"
+        app:layout_constraintStart_toEndOf="@id/kSize"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/hPhoto"
+        />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/duration"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Duration"
+        android:textSize="14sp"
+        android:gravity="center"
+        app:layout_constraintStart_toStartOf="@id/keyType"
+        app:layout_constraintEnd_toStartOf="@id/userAuthenticationType"
+        app:layout_constraintTop_toBottomOf="@id/keyType"
+        />
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/userAuthenticationType"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Auth Type"
+        android:textSize="14sp"
+        android:gravity="center"
+        app:layout_constraintStart_toEndOf="@id/duration"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/keyType"
+        />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/purposes"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Purposes"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="@id/keyType"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/userAuthenticationType"
+        />
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/algorithm"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Algorithm"
+        android:textSize="14sp"
+        app:layout_constraintStart_toStartOf="@id/keyType"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/purposes"
+        />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -22,6 +22,7 @@ import org.fmm.pocqr.databinding.FragmentResponsibleBinding
 import org.fmm.pocqr.dto.QREncryptedData
 import org.fmm.pocqr.security.crypto.ui.BiometricPromptHelper
 import org.fmm.pocqr.security.crypto.util.AndroidKeystoreUtil
+import org.fmm.pocqr.security.crypto.util.AsymmetricRSAHybridCipherManager
 import org.fmm.pocqr.security.totp.generator.TotpGenerator
 import org.fmm.pocqr.ui.qr.QRGenBottomSheetDialogFragment
 import org.fmm.pocqr.ui.qr.QRReaderBottomSheetDialogFragment
@@ -37,14 +38,10 @@ class ResponsibleFragment : Fragment() {
 
     private var qrEncryptedData: QREncryptedData? = null
 
-    private lateinit var biometricPromptHelper: BiometricPromptHelper
+//    private lateinit var biometricPromptHelper: BiometricPromptHelper
+    private lateinit var asymmetricRSAManager: AsymmetricRSAHybridCipherManager
 
     // MutableSharedFlow para emitir eventos
-    private val _signatureUpdatedEvent = MutableSharedFlow<String>(
-        extraBufferCapacity = 1, // Puedes ajustar esto. 1 si quieres que el último evento no se pierda si no hay un colector inmediato.
-        onBufferOverflow = BufferOverflow.DROP_OLDEST // Opciones como DROP_LATEST, SUSPEND
-    )
-    val signatureUpdatedEvent: SharedFlow<String> = _signatureUpdatedEvent
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -69,7 +66,7 @@ class ResponsibleFragment : Fragment() {
     private fun initEvents() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                signatureUpdatedEvent.collect { newSignature ->
+                asymmetricRSAManager.signatureUpdatedEvent.collect { newSignature ->
                     binding.signature.setText(newSignature)
                     showQR()
                 }
@@ -78,6 +75,11 @@ class ResponsibleFragment : Fragment() {
     }
 
     private fun initSecurity() {
+        asymmetricRSAManager= AsymmetricRSAHybridCipherManager(
+            this.requireContext(),
+            this.requireActivity()
+        )
+        /*
         biometricPromptHelper = BiometricPromptHelper(
             this.requireActivity(),
             { error -> println(error)},
@@ -85,6 +87,8 @@ class ResponsibleFragment : Fragment() {
 
             }
             )
+
+         */
     }
 
     private fun initDialogs() {
@@ -112,23 +116,7 @@ class ResponsibleFragment : Fragment() {
 
     private fun signData() {
         val json = createJSONToSign()
-        biometricPromptHelper.signData(
-            json.toString().toByteArray(),
-            callback = { digitalSignature ->
-                lifecycleScope.launch {
-                    if (digitalSignature != null) {
-                        val dS = Base64.getEncoder().encodeToString(digitalSignature)
-                        Log.d(
-                            "ResponsibleFragment",
-                            "Digital Signature: $dS"
-                        )
-                        _signatureUpdatedEvent.emit(dS)
-                    } else {
-                        Log.e("ResponsibleFragment", "Exception while generating signature")
-                    }
-                }
-            }
-        )
+        asymmetricRSAManager.signData(json.toString().toByteArray())
     }
     private fun generateCryptography() {
         try {

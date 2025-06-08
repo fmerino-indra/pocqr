@@ -19,13 +19,15 @@ import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.UnrecoverableKeyException
 import java.security.cert.CertificateException
+import java.util.Enumeration
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 object AndroidKeystoreUtil {
     private const val ANDROID_KEYSTORE = "AndroidKeyStore"
     private const val KEY_ALIAS_AES = "MasterKey-FMMP"
-    private const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP"
+//    private const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP"
+    private const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP-V2"
     private const val AES_LENGTH = 256
 
     const val AUTH_VALIDITY_SECONDS = 30
@@ -42,6 +44,15 @@ object AndroidKeystoreUtil {
             load(null) // null si no se requiere contraseña para el Keystore
         }
     }
+
+    fun getAlias(): Enumeration<String> {
+        return getKeyStore().aliases()
+    }
+
+    fun getEntry(alias: String): KeyStore.Entry {
+        return getKeyStore().getEntry(alias,null)
+    }
+
 // Simétricos
     /**
      * Devuelve la clave asumiendo que ya fue generada con autenticación requerida
@@ -139,7 +150,9 @@ object AndroidKeystoreUtil {
                 .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
                 .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
                 .setUserAuthenticationRequired(true)
-                .setUserAuthenticationParameters(0,KeyProperties.AUTH_BIOMETRIC_STRONG )
+                .setUserAuthenticationParameters(0,KeyProperties.AUTH_DEVICE_CREDENTIAL or
+                        KeyProperties.AUTH_BIOMETRIC_STRONG)
+//                .setUserAuthenticationParameters(0,KeyProperties.AUTH_BIOMETRIC_STRONG )
         } else {
             KeyGenParameterSpec.Builder(
                 KEY_PAIR_ALIAS_RSA,

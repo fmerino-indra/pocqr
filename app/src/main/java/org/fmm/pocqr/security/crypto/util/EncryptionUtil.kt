@@ -13,19 +13,29 @@ import javax.crypto.spec.GCMParameterSpec
 /**
  * Clase para encriptar / desencriptar datos usando la SecretKey del Keystore
  */
-object EncryptionUtil {
+class EncryptionUtil {
 
     //ENCRYPTION
-    private const val RSA_ALGORITHM = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding" // OAEP para cifrado
-    private const val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
+    private val RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding"
+//    private const val RSA_ALGORITHM = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding" // OAEP para cifrado
+    private val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
+
 
     //SIGNATURE
-    private const val RSA_SIGNATURE_ALGORITHM = "SHA256withRSA/PSS"
+    private val RSA_SIGNATURE_ALGORITHM = "SHA256withRSA/PSS"
 
-    private const val GCM_IV_LENGTH = 12 // Longitud del IV para GCM en bytes
-    private const val GCM_TAG_LENGTH = 128 // Longitud del tag para GCM en bits
+    private val GCM_IV_LENGTH = 12 // Longitud del IV para GCM en bytes
+    private val GCM_TAG_LENGTH = 128 // Longitud del tag para GCM en bits
 
     private var _signature: Signature = Signature.getInstance(RSA_SIGNATURE_ALGORITHM)
+    val signature get() = _signature
+
+    private var _rsaCipher: Cipher = Cipher.getInstance(RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY) // OAEP padding
+    val rsaCipher get() = _rsaCipher
+
+    private var _aesCipher: Cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION) //
+    // OAEP padding
+    val aesCipher get() = _aesCipher
 
     /**
      * Encripta los datos utilizando la clave simétrica proporcionada.
@@ -37,13 +47,13 @@ object EncryptionUtil {
      * @return Una cadena Base64 que contiene el IV y los datos encriptados.
      */
     fun encryptByteArray(data: ByteArray, secretKey: SecretKey): ByteArray {
-        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
+        //val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
         val iv = ByteArray(GCM_IV_LENGTH)
         SecureRandom().nextBytes(iv) // Generar un IV aleatorio para cada encriptación
         val spec = GCMParameterSpec(GCM_TAG_LENGTH, iv)
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey, spec)
+        _aesCipher.init(Cipher.ENCRYPT_MODE, secretKey, spec)
 
-        val encryptedBytes = cipher.doFinal(data)
+        val encryptedBytes = _aesCipher.doFinal(data)
 
         // Combinar el IV y los datos encriptados para almacenarlos juntos
         val combined = ByteArray(iv.size + encryptedBytes.size)
@@ -56,14 +66,16 @@ object EncryptionUtil {
     /**
      * Encripta los datos utilizando la clave pública proporcionada.
      * RSA/ECB/OAEPWithSHA-256AndMGF1Padding
+     * Los datos a cifrar no pueden superar los 214 bytes
+     *
      * @param data Los datos a encriptar.
      * @param publicKey La SecretKey obtenida del Android Keystore.
      * @return Una cadena Base64 que contiene el IV y los datos encriptados.
      */
     fun encryptByteArray(data: ByteArray, publicKey: PublicKey): ByteArray {
-        val cipher = Cipher.getInstance(RSA_ALGORITHM)
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        val encryptedBytes = cipher.doFinal(data)
+        //val cipher = Cipher.getInstance(RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY)
+        _rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        val encryptedBytes = _rsaCipher.doFinal(data)
 
         return encryptedBytes
     }
@@ -83,15 +95,16 @@ object EncryptionUtil {
      * @return Los datos desencriptados en un ByteArray.
      */
     fun decryptByteArray(combined: ByteArray, secretKey: SecretKey): ByteArray {
+//        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
 
         val iv = combined.copyOfRange(0, GCM_IV_LENGTH)
         val encryptedData = combined.copyOfRange(GCM_IV_LENGTH, combined.size)
 
-        val cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION)
         val spec = GCMParameterSpec(GCM_TAG_LENGTH, iv)
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
+        // Aquí es donde lanza la excepción de autenticación
+        aesCipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
 
-        return cipher.doFinal(encryptedData)
+        return aesCipher.doFinal(encryptedData)
     }
 
     /**
@@ -111,9 +124,10 @@ object EncryptionUtil {
      */
     fun decryptByteArray(encryptedByteArray: ByteArray, privateKey: PrivateKey): ByteArray {
 
-        val cipherRsa = Cipher.getInstance(RSA_ALGORITHM)
-        cipherRsa.init(Cipher.DECRYPT_MODE, privateKey)
-        return cipherRsa.doFinal(encryptedByteArray)
+//        val cipherRsa = Cipher.getInstance(RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY)
+        // Aquí es donde lanza la excepción de autenticación
+        _rsaCipher.init(Cipher.DECRYPT_MODE, privateKey)
+        return _rsaCipher.doFinal(encryptedByteArray)
     }
 
     fun getIv(encryptedDataBase64: String): ByteArray {
@@ -135,6 +149,7 @@ object EncryptionUtil {
         signatureToVerify: ByteArray,
         publicKey: PublicKey?
     ): Boolean {
+        // Aquí es donde lanza la excepción de autenticación
         _signature.initVerify(publicKey)
         _signature.update(data)
         return _signature.verify(signatureToVerify)

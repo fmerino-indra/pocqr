@@ -16,6 +16,9 @@
         <action
             android:id="@+id/action_blankFragment_to_brotherFragment"
             app:destination="@id/brotherFragment" />
+        <action
+            android:id="@+id/action_blankFragment_to_managementFragment"
+            app:destination="@id/managementFragment" />
     </fragment>
     <fragment
         android:id="@+id/responsibleFragment"
@@ -27,4 +30,9 @@
         android:name="org.fmm.pocqr.ui.BrotherFragment"
         android:label="fragment_brother"
         tools:layout="@layout/fragment_brother" />
+    <fragment
+        android:id="@+id/managementFragment"
+        android:name="org.fmm.pocqr.ui.management.ManagementFragment"
+        android:label="fragment_management"
+        tools:layout="@layout/fragment_management" />
 </navigation>

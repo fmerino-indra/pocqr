@@ -40,8 +40,16 @@ class SelectorFragment : Fragment() {
         binding.btnBrother.setOnClickListener {
             navigateToBrother()
         }
+        binding.btnManage.setOnClickListener {
+            navigateToManagement()
+        }
     }
 
+    private fun navigateToManagement() {
+        findNavController().navigate(
+            R.id.action_blankFragment_to_managementFragment
+        )
+    }
     private fun navigateToResponsible() {
         findNavController().navigate(
             R.id.action_blankFragment_to_responsibleFragment

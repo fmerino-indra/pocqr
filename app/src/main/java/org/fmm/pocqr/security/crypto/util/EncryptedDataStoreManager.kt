@@ -1,6 +1,7 @@
 package org.fmm.pocqr.security.crypto.util
 
 import android.content.Context
+import android.util.Base64
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
@@ -63,6 +64,8 @@ prefsDataStoreName:String) {
 
     private val preferenceDataStore = FMMDataStoreFactory.getEncryptedPreferencesDataStore(context,
         prefsDataStoreName)
+
+    private val encryptionUtil = EncryptionUtil()
 /*
     private suspend fun encryptString(data: String): String {
         val secretKey = AndroidKeystoreUtil.getSecretKey() // Puede lanzar UserNotAuthenticatedException
@@ -73,13 +76,13 @@ prefsDataStoreName:String) {
 
     private suspend fun encryptValue(data: String): String {
         val secretKey = AndroidKeystoreUtil.getSecretKey() // Puede lanzar UserNotAuthenticatedException
-        val encryptedBytes = EncryptionUtil.encryptByteArray(data.toByteArray(), secretKey)
-        return encryptedBytes
+        val encryptedBytes = encryptionUtil.encryptByteArray(data.toByteArray(), secretKey)
+        return Base64.encodeToString(encryptedBytes, Base64.DEFAULT)
     }
 
     private suspend fun decryptString(encryptedData: String): String {
         val secretKey = AndroidKeystoreUtil.getSecretKey() // Puede lanzar UserNotAuthenticatedException
-        val decryptedBytes = EncryptionUtil.decryptByteArray(encryptedData, secretKey)
+        val decryptedBytes = encryptionUtil.decryptByteArray(encryptedData, secretKey)
         return String(decryptedBytes, Charsets.UTF_8)
     }
 

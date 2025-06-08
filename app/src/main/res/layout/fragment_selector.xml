@@ -30,4 +30,15 @@
         android:text="Brother"
         tools:layout_editor_absoluteX="52dp"
         tools:layout_editor_absoluteY="158dp" />
+    <Button
+        android:id="@+id/btnManage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnBrother"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:text="Manage"
+        tools:layout_editor_absoluteX="52dp"
+        tools:layout_editor_absoluteY="158dp" />
 </androidx.constraintlayout.widget.ConstraintLayout>
