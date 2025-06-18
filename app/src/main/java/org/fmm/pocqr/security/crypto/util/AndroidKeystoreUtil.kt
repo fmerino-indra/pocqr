@@ -4,11 +4,15 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyInfo
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.util.Log
+import org.fmm.pocqr.security.crypto.dto.AuthenticationCapabilitiesData
+import org.fmm.pocqr.security.crypto.ui.DEVICE_AUTHENTICATION_FMM
 import java.io.IOException
 import java.security.InvalidAlgorithmParameterException
+import java.security.KeyFactory
 import java.security.KeyPair
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -19,16 +23,19 @@ import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.UnrecoverableKeyException
 import java.security.cert.CertificateException
+import java.security.interfaces.ECKey
+import java.security.interfaces.RSAKey
+import java.security.spec.KeySpec
 import java.util.Enumeration
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 object AndroidKeystoreUtil {
-    private const val ANDROID_KEYSTORE = "AndroidKeyStore"
-    private const val KEY_ALIAS_AES = "MasterKey-FMMP"
+    const val ANDROID_KEYSTORE = "AndroidKeyStore"
+    const val KEY_ALIAS_AES = "MasterKey-FMMP"
 //    private const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP"
-    private const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP-V2"
-    private const val AES_LENGTH = 256
+    const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP-V9"
+    const val AES_LENGTH = 256
 
     const val AUTH_VALIDITY_SECONDS = 30
 
@@ -99,7 +106,7 @@ object AndroidKeystoreUtil {
         IOException::class,
         CertificateException::class
     )
-    fun getRsaPrivateKeyForBiometricUse(): PrivateKey? {
+    fun getRsaPrivateKey(): PrivateKey? {
         val aliases = getKeyStore().aliases()
         aliases.toList().stream().forEach {
             Log.d("AndroidKeystoreUtil", "Alias: $it")
@@ -126,6 +133,28 @@ object AndroidKeystoreUtil {
     }
 
     /**
+     * Return or generate a key pair with authentication
+     */
+    @Throws(
+        NoSuchAlgorithmException::class,
+        NoSuchProviderException::class,
+        InvalidAlgorithmParameterException::class,
+        KeyPermanentlyInvalidatedException::class // Puede ocurrir si se cambia la biometría
+    )
+    fun getOrGenerateRsaKeyPairWithAuthentication(authenticatorCapabilitiesData: AuthenticationCapabilitiesData): KeyPair {
+
+        if (getKeyStore().containsAlias(KEY_PAIR_ALIAS_RSA)) {
+            val key = getKeyStore().getEntry(KEY_PAIR_ALIAS_RSA, null)
+            return if (key is KeyStore.PrivateKeyEntry)
+                KeyPair(key.certificate.publicKey, key.privateKey)
+            else {
+                generateRsaKeyPairWithAuthentication(authenticatorCapabilitiesData)
+            }
+        } else {
+            return generateRsaKeyPairWithAuthentication(authenticatorCapabilitiesData)
+        }
+    }
+    /**
      * Genera un par de claves RSA en el Android KeyStore que requieren autenticación del usuario.
      * La autenticación es necesaria para cada uso de la clave privada.
      */
@@ -136,47 +165,52 @@ object AndroidKeystoreUtil {
         KeyPermanentlyInvalidatedException::class // Puede ocurrir si se cambia la biometría
     )
     @SuppressLint("ObsoleteSdkInt")
-    fun generateRsaKeyPairWithBiometricAuthentication(): KeyPair {
+    private fun generateRsaKeyPairWithAuthentication(authenticatorCapabilitiesData: AuthenticationCapabilitiesData): KeyPair {
         val keyGenerator = KeyPairGenerator.getInstance(
             KeyProperties.KEY_ALGORITHM_RSA,
             ANDROID_KEYSTORE)
-        val keyGenParameterSpec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            KeyGenParameterSpec.Builder(
-                KEY_PAIR_ALIAS_RSA,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT or
-                        KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-            )
-                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
-                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
-                .setUserAuthenticationRequired(true)
-                .setUserAuthenticationParameters(0,KeyProperties.AUTH_DEVICE_CREDENTIAL or
-                        KeyProperties.AUTH_BIOMETRIC_STRONG)
-//                .setUserAuthenticationParameters(0,KeyProperties.AUTH_BIOMETRIC_STRONG )
-        } else {
-            KeyGenParameterSpec.Builder(
-                KEY_PAIR_ALIAS_RSA,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT or
-                        KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
-            )
-                .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
-                .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
-                .setUserAuthenticationRequired(true)
-                .setUserAuthenticationValidityDurationSeconds(-1)
-        }
-        //.setUserAuthenticationValidityDurationSeconds(-1) // Siempre que se use requiere
-        // autenticación
-        // Opcional: Requiere que el cifrado sea por hardware (enclaves seguros) si está disponible
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            keyGenParameterSpec.setInvalidatedByBiometricEnrollment(true) // La clave se invalida si se añaden/eliminan huellas
-        }
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-//            keyGenParameterSpec.setIsStrongBoxBacked(true) // Prioriza StrongBox (hardware más
-//    // seguro)
-//        }
 
-        keyGenerator.initialize(keyGenParameterSpec.build())
+        val keyGenParameterSpecBuilder2 : KeyGenParameterSpec.Builder = KeyGenParameterSpec.Builder(
+            KEY_PAIR_ALIAS_RSA,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT or
+                    KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+        )
+            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
+            .let {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    it.setUserAuthenticationRequired(true)
+                        .setUserAuthenticationParameters(
+                            0, authenticatorCapabilitiesData.getKeyPropertiesFromAuthenticators()
+                        )
+                } else if (authenticatorCapabilitiesData.biometricAuthenticators > 0) {
+                    it.setUserAuthenticationRequired(true)
+                        .setUserAuthenticationValidityDurationSeconds(-1)
+
+                } else if (
+                    (authenticatorCapabilitiesData.deviceAuthenticators
+                            and DEVICE_AUTHENTICATION_FMM )
+                    == DEVICE_AUTHENTICATION_FMM
+                    ){
+                    it.setUserAuthenticationRequired(true)
+                        .setUserAuthenticationValidityDurationSeconds(20)
+                } else {
+                    throw RuntimeException("Debe habilitar algún método de autenticación")
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    it.setInvalidatedByBiometricEnrollment(true) // La clave se invalida si se
+                }
+                it
+            }
+
+/*
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            keyGenParameterSpecBuilder2.setIsStrongBoxBacked(true)
+        }
+*/
+
+        keyGenerator.initialize(keyGenParameterSpecBuilder2.build())
         return keyGenerator.generateKeyPair()
     }
 
@@ -295,5 +329,98 @@ object AndroidKeystoreUtil {
         }
     }
 
+    @SuppressLint("ObsoleteSdkInt")
+    fun inspectKeyProtection(alias:String): KeyInfo? {
+        try {
+            if (!getKeyStore().containsAlias(alias)) {
+                Log.w("AndroidKeystoreUtil", "The key with alias: '$alias' doesn't exist")
+                return null
+            }
+            val entry = getKeyStore().getEntry(alias,null)
+            if (entry == null) {
+                Log.w("AndroidKeystoreUtil", "The key with alias: '$alias' doesn't exist")
+                return null
+            }
+            val key = getKeyStore().getKey(alias, null)
+            val keyFactory = KeyFactory.getInstance(key.algorithm, ANDROID_KEYSTORE)
+            val keySpec: KeySpec = if (key is PrivateKey) {
+                keyFactory.getKeySpec(key, KeyInfo::class.java)
+            } else if (key is SecretKey) {
+                keyFactory.getKeySpec(key, KeyInfo::class.java)
+            } else {
+                Log.w("AndroidKeystoreUtil", "Key type not supported: ${key.javaClass.name}")
+                return null
+            }
+            val keyInfo = keySpec as KeyInfo
+
+            Log.d("KeyInspector", "--- Propiedades de la clave '$alias' ---")
+            Log.d("KeyInspector", "Algoritmo: ${key.algorithm}")
+            Log.d("KeyInspector", "Tamaño de clave: ${keyInfo.keySize} bits")
+            Log.d("KeyInspector", "Origen: ${getOriginString(keyInfo.origin)}")
+            Log.d("KeyInspector", "Reside en hardware seguro (TEE/SE): ${keyInfo.isInsideSecureHardware}")
+
+            // **Propiedades de Autenticación**
+            Log.d("KeyInspector", "Requiere autenticación de usuario: ${keyInfo.isUserAuthenticationRequired}")
+            if (keyInfo.isUserAuthenticationRequired) {
+                val validityDuration = keyInfo.userAuthenticationValidityDurationSeconds
+                if (validityDuration == -1) {
+                    Log.d("KeyInspector", "  -> Autenticación requerida para CADA uso.")
+                } else if (validityDuration > 0) {
+                    Log.d("KeyInspector", "  -> Autenticación válida por ${validityDuration} segundos.")
+                } else {
+                    Log.d("KeyInspector", "  -> Duración de autenticación no especificada o 0 (puede ser por defecto para 'cada uso').")
+                }
+                Log.d("KeyInspector", "  -> Autenticación forzada por hardware seguro: ${keyInfo.isUserAuthenticationRequirementEnforcedBySecureHardware}")
+                Log.d("KeyInspector", "  -> Invalidada por enrolamiento biométrico/cambio de PIN: ${keyInfo.isInvalidatedByBiometricEnrollment}")
+
+                // A partir de API 28 (Android P)
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    Log.d("KeyInspector", "  -> Requiere presencia de usuario (confirmación física): ${keyInfo.isTrustedUserPresenceRequired}")
+                    Log.d("KeyInspector", "  -> Requiere confirmación de usuario (ej. diálogo): ${keyInfo.isUserConfirmationRequired}")
+                }
+            }
+
+            // Propiedades de validez de tiempo
+            Log.d("KeyInspector", "Válida desde: ${keyInfo.keyValidityStart ?: "No restringido"}")
+            Log.d("KeyInspector", "Válida hasta (signing/encryption): ${keyInfo.keyValidityForOriginationEnd ?: "No restringido"}")
+            Log.d("KeyInspector", "Válida hasta (verification/decryption): ${keyInfo.keyValidityForConsumptionEnd ?: "No restringido"}")
+
+            // Propósitos de la clave
+            Log.d("KeyInspector", "Propósitos: ${getPurposesString(keyInfo.purposes)}")
+
+            // Para ver propiedades específicas del algoritmo (opcional)
+            if (key is RSAKey) {
+                Log.d("KeyInspector", "Es clave RSA. Módulo: ${key.modulus.bitLength()} bits")
+            } else if (key is ECKey) {
+                Log.d("KeyInspector", "Es clave EC. Curva: ${key.params.curve.field.fieldSize} bits")
+            }
+            return keyInfo
+
+        } catch (e: Exception) {
+            Log.e("KeyInspector", "Error al inspeccionar la clave '$alias': ${e.message}", e)
+        }
+        return null
+    }
+//    private fun getOriginString(@KeyProperties.OriginEnum origin: Int): String {
+    private fun getOriginString(origin: Int): String {
+        return when (origin) {
+            KeyProperties.ORIGIN_GENERATED -> "Generada en el dispositivo"
+            KeyProperties.ORIGIN_IMPORTED -> "Importada al Keystore"
+            KeyProperties.ORIGIN_UNKNOWN -> "Origen desconocido"
+            KeyProperties.ORIGIN_SECURELY_IMPORTED -> "Importada de forma segura"
+            else -> "Desconocido ($origin)"
+        }
+    }
+
+//    private fun getPurposesString(@KeyProperties.PurposeEnum purposes: Int): String {
+    private fun getPurposesString(purposes: Int): String {
+        val list = mutableListOf<String>()
+        if (purposes and KeyProperties.PURPOSE_ENCRYPT != 0) list.add("ENCRYPT")
+        if (purposes and KeyProperties.PURPOSE_DECRYPT != 0) list.add("DECRYPT")
+        if (purposes and KeyProperties.PURPOSE_SIGN != 0) list.add("SIGN")
+        if (purposes and KeyProperties.PURPOSE_VERIFY != 0) list.add("VERIFY")
+        if (purposes and KeyProperties.PURPOSE_WRAP_KEY != 0) list.add("WRAP_KEY")
+        return if (list.isEmpty()) "Ninguno" else list.joinToString(", ")
+    }
 
 }

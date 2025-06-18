@@ -16,6 +16,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@id/btnBrother"
+        android:gravity="center_vertical"
         android:text="Responsible"
         tools:layout_editor_absoluteX="52dp"
         tools:layout_editor_absoluteY="158dp" />
@@ -26,7 +27,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnResponsible"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/btnManage"
+        android:gravity="center_vertical"
         android:text="Brother"
         tools:layout_editor_absoluteX="52dp"
         tools:layout_editor_absoluteY="158dp" />
@@ -38,6 +40,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnBrother"
         app:layout_constraintBottom_toBottomOf="parent"
+        android:gravity="center_vertical"
         android:text="Manage"
         tools:layout_editor_absoluteX="52dp"
         tools:layout_editor_absoluteY="158dp" />

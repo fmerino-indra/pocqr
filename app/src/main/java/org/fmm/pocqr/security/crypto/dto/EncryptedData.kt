@@ -2,6 +2,12 @@ package org.fmm.pocqr.security.crypto.dto
 
 private const val GCM_IV_LENGTH:Int = 12 // Longitud del IV para GCM en bytes
 
+/**
+ * Para cifrado híbrido.
+ *   @param encryptedSymmetricKey La clave simétrica cifrada con RSA.
+ *   @param encryptedData Los datos grandes cifrados con AES.
+ *
+ */
 data class EncryptedData(
 
     val encryptedSymmetricKey: ByteArray,

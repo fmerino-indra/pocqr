@@ -7,6 +7,5 @@ data class QRSignedData (
     val data: QRData,
     val publicKey:String,
     val signature:String,
-//    val totpSeed:String?
 ){
 }

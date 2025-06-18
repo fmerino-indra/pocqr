@@ -1,8 +1,6 @@
 package org.fmm.pocqr.security.crypto.ui
 
-import android.content.Intent
 import android.os.Build
-import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.biometric.BiometricManager
@@ -17,15 +15,117 @@ sealed class BiometricOperationCryptoObject {
     data class SignatureObject(val signature: Signature): BiometricOperationCryptoObject()
 //    object None: BiometricOperationCryptoObject() // Para cuando no se necesita
 }
+const val BIOMETRIC_STRONG_FMM = 0x000F
+const val BIOMETRIC_WEAK_FMM = 0x00FF
+const val DEVICE_CREDENTIAL_FMM= 1 shl 15
+//const val DEVICE_AUTHENTICATION_FMM = 0x0800//1 shl 11
+
 class BiometricPromptHelper(
-    val activity: FragmentActivity) {
+    private val activity: FragmentActivity) {
 
     private val executor = ContextCompat.getMainExecutor(activity)
 
     private val biometricManager: BiometricManager = BiometricManager.from(activity)
-    private val authenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK or
-            BiometricManager.Authenticators.DEVICE_CREDENTIAL
 
+    /*
+        private val authenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                BiometricManager.Authenticators.DEVICE_CREDENTIAL
+    */
+
+    fun isBiometricAvailable(): Boolean {
+//        return getAllowedAuthenticators() > 0
+        return getAllAvailableAuthenticators() > 0
+    }
+
+    /**
+     * Returns authenticators
+     * BiometricManager.Authenticators.BIOMETRIC_STRONG or
+     * BiometricManager.Authenticators.DEVICE_CREDENTIAL or
+     * BiometricManager.Authenticators.BIOMETRIC_WEAK
+     *
+     * canAuthenticate, posibles valores:
+     * BIOMETRIC_SUCCESS (0)
+     *
+     * BIOMETRIC_ERROR_UNSUPPORTED (-2) Opciones incompatibles con Android version
+     * BIOMETRIC_STATUS_UNKNOWN (-1) No se sabe
+     * BIOMETRIC_ERROR_HW_UNAVAILABLE (1) (BiometricManager == null o mService -interno- == null)
+     * BIOMETRIC_ERROR_NONE_ENROLLED (11) No se ha enrolado ninguna huella
+     * BIOMETRIC_ERROR_NO_HARDWARE (12)
+     * BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED (15)
+     *
+     */
+    fun getAllAvailableAuthenticators(): Int  {
+        var bs = 0
+        var bw = 0
+        var dc = 0
+
+        val strong = biometricManager
+            .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+
+        val weak = biometricManager
+            .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_WEAK)
+
+        val deviceCredential = biometricManager
+            .canAuthenticate(BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+
+        if (biometricManager.canAuthenticate(BiometricManager.Authenticators
+                .BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS) {
+            bs = BiometricManager.Authenticators.BIOMETRIC_STRONG
+        }
+        if (biometricManager.canAuthenticate(BiometricManager.Authenticators
+                .BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS) {
+            bw = BiometricManager.Authenticators.BIOMETRIC_WEAK
+        }
+        if (biometricManager.canAuthenticate(BiometricManager.Authenticators
+                .DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS) {
+            dc = BiometricManager.Authenticators.DEVICE_CREDENTIAL
+        }
+        return bs or bw or dc
+    }
+
+    fun getAllowedAuthenticators(): Int {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            when (BiometricManager.BIOMETRIC_SUCCESS) {
+                biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG
+                        or BiometricManager.Authenticators.DEVICE_CREDENTIAL) -> {
+                    BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager
+                        .Authenticators.DEVICE_CREDENTIAL
+                }
+                biometricManager.canAuthenticate(BiometricManager.Authenticators
+                    .BIOMETRIC_STRONG) -> {
+                    BiometricManager.Authenticators.BIOMETRIC_STRONG
+                }
+                biometricManager.canAuthenticate(BiometricManager.Authenticators
+                    .DEVICE_CREDENTIAL) -> {
+                    BiometricManager.Authenticators.DEVICE_CREDENTIAL
+                }
+                biometricManager.canAuthenticate(BiometricManager.Authenticators
+                    .BIOMETRIC_WEAK) -> {
+                    BiometricManager.Authenticators.BIOMETRIC_WEAK
+                }
+                else -> 0
+            }
+        } else {
+// Realmente si la API es <= 29, esto no se usa para la generación de la clave.
+/*
+            if (biometricManager.canAuthenticate(BiometricManager.Authenticators
+                .BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS) {
+                Log.d("BiometricPromptHelper", "BIOMETRIC_STRONG available")
+            }
+            // En API < 30 siempre devolverá false
+            if (biometricManager.canAuthenticate(BiometricManager.Authenticators
+                    .DEVICE_CREDENTIAL) == BiometricManager.BIOMETRIC_SUCCESS) {
+                Log.d("BiometricPromptHelper", "DEVICE_CREDENTIAL available")
+            }
+            if (biometricManager.canAuthenticate(BiometricManager.Authenticators
+                .BIOMETRIC_WEAK) == BiometricManager.BIOMETRIC_SUCCESS)
+                BiometricManager.Authenticators.BIOMETRIC_WEAK
+            else
+*/
+                0
+        }
+    }
+/*
     fun authenticatie(
         promptTitle: String,
         promptSubtitle: String,
@@ -133,13 +233,16 @@ class BiometricPromptHelper(
                     "No se ha configurado ningún método de seguridad."
                 )
             }
-            /*
+            */
+/*
             else -> {
                 Toast.makeText(activity, "Unknown biometric state", Toast.LENGTH_LONG).show()
                 onError(BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED, "Unknown biometric state")
             }
 
  */
+    /*
+
             BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> {
                 Toast.makeText(activity, "Unknown biometric state", Toast.LENGTH_LONG).show()
                 onError(BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED, "Unknown biometric state")
@@ -157,6 +260,7 @@ class BiometricPromptHelper(
         }
 
     }
+*/
 
     fun authenticate(
         promptTitle: String,
@@ -166,11 +270,14 @@ class BiometricPromptHelper(
         onError: (Int, CharSequence) -> Unit,
         onFailed: () -> Unit
     ) {
+/*
         val promptInfo = BiometricPrompt.PromptInfo.Builder()
             .setTitle(promptTitle)
             .setSubtitle(promptSubtitle)
             .setAllowedAuthenticators(authenticators)
             .build()
+*/
+/*
         val biometricPrompt = BiometricPrompt(
             activity,
             object : BiometricPrompt.AuthenticationCallback() {
@@ -194,6 +301,9 @@ class BiometricPromptHelper(
                     onFailed()
                 }
             })
+*/
+        val biometricPrompt = createBiometricPrompt(onSuccess, onError, onFailed)
+        val promptInfo = createPromptInfo(promptTitle, promptSubtitle)
 
         val biometricPromptCryptoObject = when (cryptoOperationObject) {
             is BiometricOperationCryptoObject.CipherObject -> BiometricPrompt
@@ -219,7 +329,60 @@ class BiometricPromptHelper(
             e.printStackTrace()
         }
     }
+    private fun createBiometricPrompt(
+        onSuccess: (BiometricPrompt.AuthenticationResult) -> Unit,
+        onError:(Int, String) -> Unit,
+        onFailed: () -> Unit
+    ): BiometricPrompt {
+        val biometricPrompt = BiometricPrompt(
+            activity,
+            executor,
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    Toast.makeText(
+                        activity, "Authentication error: $errString ($errorCode)", Toast
+                            .LENGTH_LONG
+                    ).show()
+                    onError(errorCode, errString.toString())
+                }
 
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    onSuccess(result)
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    Toast.makeText(activity, "Failed authentication", Toast.LENGTH_LONG).show()
+                    onFailed()
+                }
+            }
+        )
+        return biometricPrompt
+    }
+
+    private fun createPromptInfo(
+        promptTitle: String,
+        promptSubtitle: String
+    ): BiometricPrompt.PromptInfo {
+        val authenticators = getAllowedAuthenticators()
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle(promptTitle)
+            .setSubtitle(promptSubtitle)
+            .apply {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    setAllowedAuthenticators(authenticators)
+                } else {
+                    // @TODO revisar esto
+                    //setDeviceCredentialAllowed(false)
+                    setNegativeButtonText("Cancel")
+                }
+            }
+            .build()
+        return promptInfo
+    }
 }
     /*
     fun authenticateAndUseKey() {

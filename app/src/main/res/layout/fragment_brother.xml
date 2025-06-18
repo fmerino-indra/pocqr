@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="text"
-        android:text="Felix y Mayte"/>
+        android:text="SIM:Felix y Mayte"/>
 
     <EditText
         android:id="@+id/community"
@@ -31,7 +31,7 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="text"
-        android:text="2nd Community - Santa Catalina de Siena"/>
+        android:text="SIM:2nd Community - Santa Catalina de Siena"/>
 
     <EditText
         android:id="@+id/pubKey"
@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="text"
-        android:text="Pub Key"/>
+        android:text="SIM:Pub Key"/>
 
     <EditText
         android:id="@+id/signature"
@@ -47,14 +47,13 @@
         android:layout_height="wrap_content"
         android:ems="10"
         android:inputType="text"
-        android:text="Signature"/>
+        android:text="SIM:Signature"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_gravity="end"
-
         >
         <Button
             android:id="@+id/btnReadQR"
@@ -63,11 +62,17 @@
             android:layout_marginHorizontal="2dp"
             android:text="Read\nQR" />
         <Button
-            android:id="@+id/btnGenTOTP"
+            android:id="@+id/btnShowJson"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:text="Generate\nTOTP" />
+            android:text="Show\nJSON" />
+        <Button
+            android:id="@+id/btnSignJson"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="Sign\nJSON" />
         <Button
             android:id="@+id/btnGenQR"
             android:layout_width="wrap_content"
@@ -75,6 +80,20 @@
             android:layout_gravity="end"
             android:text="Generate\nQR" />
     </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="end"
+        >
+        <Button
+            android:id="@+id/btnGenTOTP"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:text="Generate\nTOTP" />
+    </LinearLayout>
+
     <TextView
         android:id="@+id/lblTotpSeed"
         android:layout_width="match_parent"

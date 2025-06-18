@@ -1,11 +1,12 @@
 package org.fmm.pocqr.security.crypto.util
 
 import android.util.Base64
-import android.util.Log
+import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.SecureRandom
 import java.security.Signature
+import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
@@ -63,6 +64,9 @@ class EncryptionUtil {
         //return Base64.encodeToString(combined, Base64.DEFAULT)
     }
 
+    fun encryptByteArray(base64Data: String, publicKey: PublicKey): ByteArray {
+        return encryptByteArray(cleanAndDecoded(base64Data), publicKey)
+    }
     /**
      * Encripta los datos utilizando la clave pública proporcionada.
      * RSA/ECB/OAEPWithSHA-256AndMGF1Padding
@@ -141,7 +145,19 @@ class EncryptionUtil {
         _signature.initSign(privateKey)
         _signature.update(dataToSign)
         return _signature.sign()
+    }
 
+    /**
+     * If key
+     */
+    fun prepareToSign(privateKey: PrivateKey): Signature {
+        _signature.initSign(privateKey)
+        return signature
+    }
+
+    fun prepareToDecrypt(privateKey: PrivateKey): Cipher {
+        _rsaCipher.init(Cipher.DECRYPT_MODE, privateKey)
+        return _rsaCipher
     }
 
     fun verifySignature(
@@ -155,4 +171,45 @@ class EncryptionUtil {
         return _signature.verify(signatureToVerify)
     }
 
+    fun publicKeyFromString(encodedPublicKey: String): PublicKey? {
+        // Limpia cualquier espacio en blanco o salto de línea en la cadena Base64.
+        // Decodifica la cadena Base64 a bytes binarios (formato X.509 DER).
+        val decodedBytes: ByteArray = cleanAndDecoded(encodedPublicKey)
+
+        // Crear un KeySpec a partir de los bytes decodificados
+        val keySpec = X509EncodedKeySpec(decodedBytes)
+
+        // Obtener una instancia de KeyFactory para el algoritmo de clave (ej. RSA, EC, DSA)
+        // En la mayoría de los casos, X.509 puede contener diferentes tipos de claves.
+        // Si sabes que es RSA, puedes especificar "RSA". Si no, "RSA" o "EC" son comunes.
+        val keyFactory = KeyFactory.getInstance("RSA") // O "EC", "DSA", etc., dependiendo del algoritmo
+
+        try {
+            // Generar la clave pública
+            return keyFactory.generatePublic(keySpec)
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
+
+    }
+
+    companion object {
+        /**
+         * Limpia cualquier espacio en blanco o salto de línea en la cadena Base64.
+         * Decodifica la cadena Base64 a bytes binarios (formato X.509 DER si es una clave pública).
+         * Debería estar en otra clase, pero de momento...
+         */
+        fun cleanAndDecoded(b64EncodedString: String): ByteArray {
+            val cleanBase64 = b64EncodedString.replace("\\s".toRegex(), "")
+            val decodedBytes: ByteArray = Base64.decode(cleanBase64, Base64.DEFAULT)
+            return decodedBytes
+        }
+
+        fun encodeAndClean(data: ByteArray): String {
+            val base64Encoded = Base64.encodeToString(data, Base64.DEFAULT)
+            return base64Encoded.replace("\\s".toRegex(), "")
+        }
+    }
 }

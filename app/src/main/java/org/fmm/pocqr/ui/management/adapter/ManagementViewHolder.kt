@@ -17,16 +17,16 @@ import java.util.Locale
 class ManagementViewHolder(view: View): RecyclerView.ViewHolder(view) {
     private val binding = ItemEntryBinding.bind(view)
 
-    fun render(alias: String, entry: KeyStore.Entry) {
-        binding.keyName.text = alias
-        if (entry is KeyStore.PrivateKeyEntry) {
-            val privateKeyEntry = entry as KeyStore.PrivateKeyEntry
+    fun render(entry: EntryInfo) {
+        binding.keyName.text = entry.alias
+        if (entry.keyEntry is KeyStore.PrivateKeyEntry) {
+            val privateKeyEntry = entry.keyEntry
             binding.keyType.text = privateKeyEntry.certificate.type
             binding.keyType.text = "Asymmetric Key"
 
 //            binding.creationDate.text = formatDate(privateKeyEntry.creationDate)
-            val privateKey = entry.privateKey
-            val publicKey = entry.certificate.publicKey
+            val privateKey = privateKeyEntry.privateKey
+            val publicKey = privateKeyEntry.certificate.publicKey
 
             binding.algorithm.text = privateKey.algorithm
             binding.kSize.text = getKeySize(publicKey).toString()
@@ -64,10 +64,8 @@ class ManagementViewHolder(view: View): RecyclerView.ViewHolder(view) {
                     binding.purposes.text = parsePurposes(keyInfo.purposes)
                 } catch (e: Exception) {
                     Log.e(
-                        "ManagementViewHolder", "Error getting KeyInfo for alias $alias: ${
-                            e
-                                .message
-                        }", e
+                        "ManagementViewHolder",
+                        "Error getting KeyInfo for alias ${entry.alias}: ${e.message}", e
                     )
                 }
             }

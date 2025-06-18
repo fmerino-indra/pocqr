@@ -1,17 +1,19 @@
 package org.fmm.pocqr.ui
 
+import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -20,14 +22,15 @@ import kotlinx.serialization.json.put
 import org.fmm.pocqr.R
 import org.fmm.pocqr.databinding.FragmentResponsibleBinding
 import org.fmm.pocqr.dto.QREncryptedData
-import org.fmm.pocqr.security.crypto.ui.BiometricPromptHelper
 import org.fmm.pocqr.security.crypto.util.AndroidKeystoreUtil
 import org.fmm.pocqr.security.crypto.util.AsymmetricRSAHybridCipherManager
+import org.fmm.pocqr.security.crypto.util.EncryptionUtil
 import org.fmm.pocqr.security.totp.generator.TotpGenerator
 import org.fmm.pocqr.ui.qr.QRGenBottomSheetDialogFragment
 import org.fmm.pocqr.ui.qr.QRReaderBottomSheetDialogFragment
 import java.security.InvalidAlgorithmParameterException
 import java.util.Base64
+
 
 class ResponsibleFragment : Fragment() {
     private var _binding: FragmentResponsibleBinding?=null
@@ -37,8 +40,24 @@ class ResponsibleFragment : Fragment() {
     private lateinit var qrGenBottomSheetDialogFragment: QRGenBottomSheetDialogFragment
 
     private var qrEncryptedData: QREncryptedData? = null
+    private var cleanTotpSeed: String = ""
 
-//    private lateinit var biometricPromptHelper: BiometricPromptHelper
+    private val decryptionAuthenticationLauncher = registerForActivityResult(
+        ActivityResultContracts
+            .StartActivityForResult()
+    ) { result: ActivityResult ->
+        Log.d("ResponsibleFragment", "Este es el resultado ${result.data}")
+        asymmetricRSAManager.handlePinDecryption(result.resultCode)
+    }
+
+    private val authenticationLauncher = registerForActivityResult(
+            ActivityResultContracts
+                .StartActivityForResult()
+        ) { result: ActivityResult ->
+            asymmetricRSAManager.handlePinSignature(result.resultCode)
+        }
+
+    //    private lateinit var biometricPromptHelper: BiometricPromptHelper
     private lateinit var asymmetricRSAManager: AsymmetricRSAHybridCipherManager
 
     // MutableSharedFlow para emitir eventos
@@ -56,11 +75,49 @@ class ResponsibleFragment : Fragment() {
         initUI()
     }
 
+    override fun onViewStateRestored(savedInstanceState: Bundle?) {
+        super.onViewStateRestored(savedInstanceState)
+        Log.d("ResponsibleFragment", "Fragment restaurado: onViewStateRestored" +
+                "restaurada")
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d("ResponsibleFragment", "Fragment activo: onStart")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Log.d("ResponsibleFragment", "Fragment en foco. Activity: onResume")
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Log.d("ResponsibleFragment", "onPause: No primer plano")
+    }
+
+    override fun onStop() {
+        super.onStop()
+        Log.d("ResponsibleFragment", "onStop: No visible")
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+    }
     private fun initUI() {
         initSecurity()
         initDialogs()
         initListeners()
         initEvents()
+        buttonStates()
     }
 
     private fun initEvents() {
@@ -68,29 +125,41 @@ class ResponsibleFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 asymmetricRSAManager.signatureUpdatedEvent.collect { newSignature ->
                     binding.signature.setText(newSignature)
-                    showQR()
+                    buttonStates()
+                }
+                asymmetricRSAManager.decryptedUpdatedEvent.collect { decryptedData ->
+                    binding.totpSeed.text = decryptedData
+                    cleanTotpSeed = decryptedData
+                    binding.totpEntered.isEnabled = true
+
+                    buttonStates()
                 }
             }
         }
     }
 
     private fun initSecurity() {
-        asymmetricRSAManager= AsymmetricRSAHybridCipherManager(
-            this.requireContext(),
-            this.requireActivity()
-        )
-        /*
-        biometricPromptHelper = BiometricPromptHelper(
-            this.requireActivity(),
-            { error -> println(error)},
-            cipherOperation = { cipher ->
-
-            }
+        try {
+            asymmetricRSAManager = AsymmetricRSAHybridCipherManager(
+                this.requireContext(),
+                this.requireActivity(),
+                this.authenticationLauncher,
+                this.decryptionAuthenticationLauncher
             )
-
-         */
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (resultCode == Activity.RESULT_OK && requestCode == 1) {
+            Toast.makeText(
+                activity, "Error reintentando navegar a Settings", Toast
+                    .LENGTH_SHORT
+            ).show()
+        }
+    }
     private fun initDialogs() {
         qrGenBottomSheetDialogFragment= QRGenBottomSheetDialogFragment()
         qrReaderBottomDialog=QRReaderBottomSheetDialogFragment { stringRead ->
@@ -101,35 +170,47 @@ class ResponsibleFragment : Fragment() {
     private fun initListeners() {
         binding.btnPubKey.setOnClickListener {
             generateCryptography()
+            buttonStates()
         }
-        binding.btnQR.setOnClickListener {
+
+        binding.btnSign.setOnClickListener {
             signData()
-//            showQR()
+            buttonStates()
+        }
+
+        binding.btnQR.setOnClickListener {
+//            signData()
+            showQR()
+            buttonStates()
         }
         binding.btnResponse.setOnClickListener {
             readQR()
+            buttonStates()
         }
         binding.btnValidate.setOnClickListener {
             validateTOTP()
+            buttonStates()
         }
     }
 
     private fun signData() {
         val json = createJSONToSign()
+        Log.d("ResponsibleFragment", "JSON to sign: ${json}")
         asymmetricRSAManager.signData(json.toString().toByteArray())
     }
     private fun generateCryptography() {
         try {
             // 1 Recupera par de claves o las crea
-            val keyPair = AndroidKeystoreUtil.generateRsaKeyPairWithBiometricAuthentication()
-            binding.pubKey.setText(Base64.getEncoder().encodeToString(keyPair.public.encoded))
+
+            val publicKey = AndroidKeystoreUtil.getRsaPublicKey()
+            binding.pubKey.setText(Base64.getEncoder().encodeToString(publicKey?.encoded))
         } catch (iape: InvalidAlgorithmParameterException) {
             // Si no tiene huella configurada, lleva dentro IllegalStateException
         } catch (ise: IllegalStateException) {
         } catch (e: Exception) {
             Log.e("ResponsibleFragment", "Error al generar el par de claves", e)
         }
-        val privateKey = AndroidKeystoreUtil.getRsaPrivateKeyForBiometricUse()
+        val privateKey = AndroidKeystoreUtil.getRsaPrivateKey()
 
     }
     private fun showQR() {
@@ -139,12 +220,24 @@ class ResponsibleFragment : Fragment() {
         qrGenBottomSheetDialogFragment.show(parentFragmentManager, "qrGeneratorBottomSheet")
     }
 
+    /**
+     * Crea:
+     * "signature": "NoZkHIPi7...",
+     * "publicKey": "MIIBIjANBgk...
+     * "data": {
+     *   "name": "Felix",
+     *   "community": "2 Siena"
+     * }
+     */
     private fun createJSON(): JsonObject {
         var data = createJSONToSign()
+        val publicKey = AndroidKeystoreUtil.getRsaPublicKey()
+
 
         return buildJsonObject {
+
             put("signature", binding.signature.text.toString())
-            put("publicKey", binding.pubKey.text.toString())
+            put("publicKey", Base64.getEncoder().encodeToString(publicKey?.encoded))
             put("data", data["data"]!!)
         }
 
@@ -155,6 +248,13 @@ class ResponsibleFragment : Fragment() {
 */
     }
 
+    /**
+     * Crea:
+     * "data": {
+     *   "name": "Felix",
+     *   "community": "2 Siena"
+     * }
+    */
     private fun createJSONToSign(): JsonObject {
         val data = buildJsonObject {
             put("name", binding.name.text.toString())
@@ -184,10 +284,8 @@ class ResponsibleFragment : Fragment() {
         binding.name.setText(qrEncryptedData.qrSignedData.data.name)
         binding.community.setText(qrEncryptedData.qrSignedData.data.community)
 
-
-        binding.totpSeed.text = qrEncryptedData.totpSeed
-        binding.totpEntered.isEnabled = true
-        //binding.totpEntered.text = generateTotp(qrData.totpSeed)
+        val encryptedSeed =  qrEncryptedData.totpSeed
+        val decryptedSeed = asymmetricRSAManager.decryptAsymmetricByteArray(encryptedSeed)
 
     }
 
@@ -205,6 +303,16 @@ class ResponsibleFragment : Fragment() {
             binding.imgCheck.setImageResource(R.drawable.ic_close)
 
         }
+    }
+
+
+    private fun buttonStates() {
+        binding.btnSign.isEnabled = binding.name.text.isNotBlank()
+                && binding.community.text.isNotBlank()
+        binding.btnQR.isEnabled = binding.pubKey.text.isNotBlank()
+                && binding.name.text.isNotBlank()
+                && binding.community.text.isNotBlank()
+        binding.btnValidate.isEnabled = binding.totpSeed.text.isNotBlank()
     }
 }
 

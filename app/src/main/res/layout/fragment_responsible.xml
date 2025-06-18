@@ -62,24 +62,43 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="2dp"
+            android:layout_gravity="center_vertical"
             android:text="Public\nKey" />
+        <Button
+            android:id="@+id/btnSign"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="2dp"
+            android:layout_gravity="center_vertical"
+            android:text="Sign" />
         <Button
             android:id="@+id/btnQR"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="2dp"
+            android:layout_gravity="center_vertical"
             android:text="Gen\nQR" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="end"
+
+        >
         <Button
             android:id="@+id/btnResponse"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="2dp"
+            android:layout_gravity="top"
             android:text="Read\nresponse" />
         <Button
             android:id="@+id/btnValidate"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="2dp"
+            android:layout_gravity="top"
             android:text="Validate TOTP" />
     </LinearLayout>
     <TextView

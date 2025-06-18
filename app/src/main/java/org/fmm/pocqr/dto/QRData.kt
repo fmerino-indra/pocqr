@@ -6,8 +6,5 @@ import kotlinx.serialization.Serializable
 data class QRData (
     val name:String,
     val community:String,
-//    val publicKey:String
-//    val signature:String,
-//    val totpSeed:String
 ){
 }

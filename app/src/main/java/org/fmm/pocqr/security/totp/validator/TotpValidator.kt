@@ -1,7 +1,6 @@
 package org.fmm.pocqr.security.totp.validator
 
 import org.fmm.pocqr.security.totp.generator.TotpGenerator
-import org.fmm.pocqr.security.totp.generator.TotpSeedGenerator
 import java.util.concurrent.TimeUnit
 
 object TotpValidator {

@@ -7,12 +7,8 @@ import org.fmm.pocqr.R
 import java.security.KeyStore
 
 class ManagementAdapter(
-    private var keyMap: Map<String, KeyStore.Entry>
-//    = emptyMap<String, KeyStore.Entry>()
+    private var keyEntryList: List<EntryInfo> = emptyList<EntryInfo>()
 ) : RecyclerView.Adapter<ManagementViewHolder>() {
-
-    private val aliasMap: Map<Int, String> = keyMap.keys.withIndex()
-        .associate { (index, alias) -> index to alias }
 
     override fun onCreateViewHolder(
         parent: ViewGroup,
@@ -26,12 +22,11 @@ class ManagementAdapter(
         holder: ManagementViewHolder,
         position: Int
     ) {
-        val alias = aliasMap[position]!!
-        holder.render(alias, keyMap[alias]!!)
+        holder.render(keyEntryList[position])
     }
 
     override fun getItemCount(): Int {
-        return keyMap.size
+        return keyEntryList.size
     }
 
     fun update() {

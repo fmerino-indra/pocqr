@@ -31,10 +31,12 @@ kotlinxSerializationJson = "1.7.3"
 #kotlinxSerializationJson = "1.6.3"
 
 #Biometric
-biometric = "1.1.0"
+#biometric = "1.1.0"
+biometric = "1.2.0-alpha02"
 
 #Jetpack Security
-securityCryptoKtx = "1.1.0-alpha07"
+#securityCryptoKtx = "1.1.0-alpha07"
+securityCryptoKtx = "1.1.0-beta01"
 
 #DataStore
 datastorePreferences = "1.1.7"
