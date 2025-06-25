@@ -10,9 +10,12 @@ import android.security.keystore.UserNotAuthenticatedException
 import android.util.Base64
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -24,12 +27,14 @@ import org.fmm.pocqr.security.crypto.ui.BiometricOperationCryptoObject
 import org.fmm.pocqr.security.crypto.ui.BiometricPromptHelper
 import org.fmm.pocqr.security.crypto.ui.PinPromptHelper
 import org.fmm.pocqr.security.crypto.ui.PinOperationCryptoObject
+import org.fmm.pocqr.security.crypto.ui.PinPromptHelperV2
 import java.security.GeneralSecurityException
 import java.security.InvalidAlgorithmParameterException
 import java.security.NoSuchAlgorithmException
 import java.security.NoSuchProviderException
 import java.security.PrivateKey
 import java.security.PublicKey
+import java.security.interfaces.RSAPublicKey
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
@@ -37,8 +42,10 @@ import javax.crypto.spec.SecretKeySpec
 class AsymmetricRSAHybridCipherManager(
     private val context: Context,
     private val activity: FragmentActivity,
-    authenticationLauncher: ActivityResultLauncher<Intent>,
-    decryptionAuthenticationLauncher: ActivityResultLauncher<Intent>,
+    signingAuthenticationLauncher: ActivityResultLauncher<Intent>,
+    decryptionAuthenticationLauncher: ActivityResultLauncher<Intent>
+//    ,
+//    newAuthenticationLauncher: ActivityResultLauncher<Intent>
     ) {
 
     val encryptionUtil= EncryptionUtil()
@@ -57,6 +64,7 @@ class AsymmetricRSAHybridCipherManager(
 
     private val biometricPromptHelper:BiometricPromptHelper= BiometricPromptHelper(activity)
 
+    private var currentDecryptionPromise: CompletableDeferred<String>? = null
 /*
     private val pinPromptHelper: PinPromptHelper= PinPromptHelper(activity,
         authenticationLauncher, ::handlePinSignature)
@@ -65,13 +73,23 @@ class AsymmetricRSAHybridCipherManager(
 */
 
 
-    private val pinPromptHelper: PinPromptHelper= PinPromptHelper(activity,
-        authenticationLauncher)
+    private val pinPromptSignatureHelper: PinPromptHelper= PinPromptHelper(activity,
+        signingAuthenticationLauncher)
     private val pinPromptDecryptionHelper: PinPromptHelper= PinPromptHelper(activity,
         decryptionAuthenticationLauncher)
 
+/* No se puede registrar aquí, hay que hacerlo en STARTED
+    private val pinPromptHelperV2: PinPromptHelperV2 = PinPromptHelperV2(
+        activity, activity.registerForActivityResult(
+            ActivityResultContracts
+                .StartActivityForResult()
+        ) { result: ActivityResult ->
+            this.authCallback(result)
+        }
+    )
+*/
     val biometricAuthenticators = biometricPromptHelper.getAllAvailableAuthenticators()
-    val pinAuthenticators = pinPromptHelper.getAllAvailableAuthenticators()
+    val pinAuthenticators = pinPromptSignatureHelper.getAllAvailableAuthenticators()
 
     val authenticationCapabilitiesData = AuthenticationCapabilitiesData(
         biometricAuthenticators, pinAuthenticators
@@ -81,6 +99,20 @@ class AsymmetricRSAHybridCipherManager(
     private lateinit var dataToReSign: ByteArray
     private lateinit var dataToDecrypt: ByteArray
 
+
+    /**
+     * Nuevo diseño
+     */
+
+/*
+    private val pinPromptHelper: PinPromptHelper= PinPromptHelper(activity,
+        newAuthenticationLauncher)
+*/
+
+    private var currentAuthCallback: ((result: ActivityResult) -> Unit)? = null
+    fun authCallback(result: ActivityResult) {
+        currentAuthCallback?.invoke(result)
+    }
 
     init {
         // Los allowedAuthenticators solo para versión R o superior (>=30)
@@ -156,7 +188,7 @@ class AsymmetricRSAHybridCipherManager(
 
     private fun getAvailableAuthenticators(): Int  {
         val biometrics = biometricPromptHelper.getAllAvailableAuthenticators()
-        val device = pinPromptHelper.getAllAvailableAuthenticators()
+        val device = pinPromptSignatureHelper.getAllAvailableAuthenticators()
 
         return biometrics or device
     }
@@ -255,7 +287,7 @@ class AsymmetricRSAHybridCipherManager(
         this.dataToReSign=dataToReSign
         lastCryptoOperationObject = PinOperationCryptoObject.PinSignatureObject(encryptionUtil
             .signature, privateKey)
-        pinPromptHelper.authenticate(
+        pinPromptSignatureHelper.authenticate(
             promptTitle = "Sign document",
             promptSubtitle = "Authenticate to digital sign"
         )
@@ -315,9 +347,11 @@ class AsymmetricRSAHybridCipherManager(
      * Decrypt
      */
     fun decryptAsymmetricByteArray(encryptedBase64: String) {
-        val decodedEncryptedData = EncryptionUtil.cleanAndDecoded(encryptedBase64)
+//        val decodedEncryptedData = EncryptionUtil.cleanAndDecoded(encryptedBase64)
+        val decodedEncryptedData = EncryptionUtil.decodeB64(encryptedBase64)
         decryptAsymmetricByteArray(decodedEncryptedData)
     }
+
     fun decryptAsymmetricByteArray(encryptedData: ByteArray) {
         val recipientPrivateKey: PrivateKey? = AndroidKeystoreUtil.getRsaPrivateKey()
         if (recipientPrivateKey == null)
@@ -335,6 +369,79 @@ class AsymmetricRSAHybridCipherManager(
         }
     }
 
+    /**
+     * Inicia el proceso de autenticación del sistema y, si es exitoso,
+     * procede a desencriptar el valor proporcionado.
+     * Esta es una función suspend, lo que significa que quien la llama
+     * debe estar en una corrutina.
+     *
+     * @param encryptedValue El texto cifrado que se desea desencriptar.
+     * @return El texto descifrado.
+     * @throws SecurityException Si la autenticación del sistema falla o es cancelada.
+     * @throws IllegalStateException Si no se puede acceder a KeyguardManager.
+     * @throws Exception Cualquier otra excepción durante la desencriptación.
+     */
+    suspend fun decryptAsymmetricByteArrayV2(encryptedData: ByteArray): String {
+        // Asegurarse de que no haya otra operación de desencriptación activa.
+        // O podrías tener un mecanismo para encolar o cancelar la anterior.
+        if (currentDecryptionPromise != null) {
+            throw IllegalStateException("Ya hay una operación de desencriptación en curso.")
+        }
+
+        // 1. Crear la PROMESA que representará el texto descifrado final (String).
+        val deferredDecryptedText = CompletableDeferred<String>()
+        currentDecryptionPromise = deferredDecryptedText // Guardar esta promesa para que el callback la resuelva.
+
+        // 2. Preparar y lanzar la Activity de autenticación del sistema.
+        // @TODO poner aquí el try / catch de autenticación
+        val recipientPrivateKey: PrivateKey? = AndroidKeystoreUtil.getRsaPrivateKey()
+        if (recipientPrivateKey == null)
+            throw Exception()
+        val keyPair = AndroidKeystoreUtil.getOrGenerateRsaKeyPairWithAuthentication(
+            this.authenticationCapabilitiesData
+        )
+
+        val pubKey = keyPair.public
+        Log.d("AsymmetricRSAHybridCipherManager", "Public Key: $pubKey")
+
+        if (pubKey is RSAPublicKey) {
+            Log.d("AsymmetricRSAHybridCipherManager", "Public Key For Decryption")
+            Log.d("AsymmetricRSAHybridCipherManager", "_________________________")
+            Log.d("AsymmetricRSAHybridCipherManager", "Public Key: $pubKey")
+            Log.d("AsymmetricRSAHybridCipherManager", "Public Key:B64 : ${EncryptionUtil
+                .encodeB64(pubKey.encoded)}")
+            Log.d("AsymmetricRSAHybridCipherManager", "Public Key:Algoritmo : ${pubKey.algorithm}")
+            Log.d("AsymmetricRSAHybridCipherManager", "Public Key:Módulo : ${pubKey.modulus}")
+            Log.d("AsymmetricRSAHybridCipherManager", "Public Key:PublicExponent : ${pubKey
+                .publicExponent}")
+        }
+
+
+        val entryPublicKey = AndroidKeystoreUtil.getRsaPublicKey()
+        Log.d("AsymmetricRSAHybridCipherManager", "Public Key: ${EncryptionUtil.encodeB64(entryPublicKey!!
+        .encoded)}")
+/*
+        Log.d("AsymmetricRSAHybridCipherManager", "Public Key: ${EncryptionUtil.encodeAndClean(entryPublicKey!!
+            .encoded)}")
+*/
+
+        try {
+            val decryptedAsymmetricKeyBytes = encryptionUtil.decryptByteArray(encryptedData,
+                recipientPrivateKey)
+        } catch (unae: UserNotAuthenticatedException) {
+            unae.printStackTrace()
+            showAuthenticationsForDecrypt(encryptedData, recipientPrivateKey)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            showAuthenticationsForDecrypt(encryptedData, recipientPrivateKey)
+        }
+
+
+        // 3. La corrutina se SUSPENDE aquí. Esperará hasta que 'deferredDecryptedText'
+        // sea completada (con el texto desencriptado) o fallada (por error de auth/desencriptación).
+        return deferredDecryptedText.await()
+
+    }
     /**
      * @TODO Está mal, en cuanto se use el método casca
      * Descifra datos cifrados con un esquema híbrido, incluyendo el IV.
@@ -405,6 +512,74 @@ class AsymmetricRSAHybridCipherManager(
         }
     }
     fun handlePinDecryption(resultCode: Int) {
+        val promise = currentDecryptionPromise
+        currentDecryptionPromise = null
+        if (promise == null) {
+            // return@handlePinDecryption es lo mismo que lo siguiente, porque es la función más
+            // cercana
+            return
+        }
+        if (resultCode == Activity.RESULT_OK) {
+            Log.d("AsymmetricRSAHybridCipherManager::handlePinDecryption", "Ahora se puede usar " +
+                    "la clave")
+
+            (activity.application as PocQRApp).applicationSccope.launch {
+                try {
+
+                    val cip = (lastCryptoOperationObject as PinOperationCryptoObject
+                    .PinCipherObject).cipher
+                    val pK = (lastCryptoOperationObject as PinOperationCryptoObject
+                    .PinCipherObject).privateKey
+//                    val decryptedBytes = encryptionUtil.decryptByteArray(dataToDecrypt, pK)
+                    cip.init(Cipher.DECRYPT_MODE, pK)
+                    val decryptedBytes = cip.doFinal(dataToDecrypt)
+                    //_decryptedUpdatedEvent.emit(EncryptionUtil.encodeAndClean(decryptedBytes))
+
+                    /*
+                    Podríamos hacer:
+                    val decrypted = withContext(Dispatchers.IO) {
+                        cip.doFinal(dataToDecrypt)
+                    }
+                     */
+
+                    promise.complete(EncryptionUtil.encodeB64(decryptedBytes));
+//                    promise.complete(EncryptionUtil.encodeAndClean(decryptedBytes));
+                } catch (unae: UserNotAuthenticatedException) {
+                    unae.printStackTrace()
+                    // Si la desencriptación falla, la promesa final también falla.
+                    promise.completeExceptionally(
+                        RuntimeException("Fallo en la desencriptación después de la " +
+                                "autenticación: ${unae.message}", unae)
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Si la desencriptación falla, la promesa final también falla.
+                    promise.completeExceptionally(
+                        RuntimeException("Fallo en la desencriptación después de la autenticación: ${e.message}", e)
+                    )
+                }
+            }
+        } else {
+            // Autenticación fallida o cancelada por el usuario.
+            val errorMessage = when (resultCode) {
+                Activity.RESULT_CANCELED -> "Autenticación de credenciales de usuario cancelada."
+                else -> "Autenticación del sistema fallida con código: ${resultCode}."
+            }
+            // La promesa final de descifrado falla porque la autenticación no se logró.
+            promise.completeExceptionally(
+                SecurityException(errorMessage)
+            )
+
+            Toast.makeText(
+                activity, "Error de autenticación. Resultado inesperado", Toast
+                    .LENGTH_LONG
+            ).show()
+
+
+        }
+
+    }
+    fun handlePinDecryptionOld(resultCode: Int) {
         if (resultCode == Activity.RESULT_OK) {
             Log.d("AsymmetricRSAHybridCipherManager::handlePinDecryption", "Ahora se puede usar " +
                     "la clave")
@@ -418,7 +593,8 @@ class AsymmetricRSAHybridCipherManager(
 //                    val decryptedBytes = encryptionUtil.decryptByteArray(dataToDecrypt, pK)
                     cip.init(Cipher.DECRYPT_MODE, pK)
                     val decryptedBytes = cip.doFinal(dataToDecrypt)
-                    _decryptedUpdatedEvent.emit(EncryptionUtil.encodeAndClean(decryptedBytes))
+                    _decryptedUpdatedEvent.emit(EncryptionUtil.encodeB64(decryptedBytes))
+//                    _decryptedUpdatedEvent.emit(EncryptionUtil.encodeAndClean(decryptedBytes))
                 } catch (unae: UserNotAuthenticatedException) {
                     unae.printStackTrace()
                 } catch (e: Exception) {

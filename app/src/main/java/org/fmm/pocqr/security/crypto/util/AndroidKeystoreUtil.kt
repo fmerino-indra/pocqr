@@ -34,10 +34,12 @@ object AndroidKeystoreUtil {
     const val ANDROID_KEYSTORE = "AndroidKeyStore"
     const val KEY_ALIAS_AES = "MasterKey-FMMP"
 //    private const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP"
-    const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP-V9"
+    const val KEY_PAIR_ALIAS_RSA = "MasterKeyPair-FMMP-VA"
     const val AES_LENGTH = 256
 
     const val AUTH_VALIDITY_SECONDS = 30
+
+    const val KEY_PAIR_ALIAS_RSA_NO_AUTH="MasterKeyPair-NO-AUTH-V4"
 
 //    private val KEY_ALIAS_RSA = "my_rsa_key_with_biometric"
 //    private val KEY_ALIAS_AES = "my_aes_key_with_biometric" // Aunque AES se usaría
@@ -422,5 +424,100 @@ object AndroidKeystoreUtil {
         if (purposes and KeyProperties.PURPOSE_WRAP_KEY != 0) list.add("WRAP_KEY")
         return if (list.isEmpty()) "Ninguno" else list.joinToString(", ")
     }
+
+//------------------------------------------------------------------------------------------//
+    // SIN AUTENTICACIÓN
+
+    /**
+     * Return or generate a key pair with authentication
+     */
+    @Throws(
+        NoSuchAlgorithmException::class,
+        NoSuchProviderException::class,
+        InvalidAlgorithmParameterException::class,
+        KeyPermanentlyInvalidatedException::class // Puede ocurrir si se cambia la biometría
+    )
+    fun getOrGenerateRsaKeyPairWithoutAuthentication(): KeyPair {
+
+        if (getKeyStore().containsAlias(KEY_PAIR_ALIAS_RSA_NO_AUTH)) {
+            val key = getKeyStore().getEntry(KEY_PAIR_ALIAS_RSA_NO_AUTH, null)
+            return if (key is KeyStore.PrivateKeyEntry)
+                KeyPair(key.certificate.publicKey, key.privateKey)
+            else {
+                generateRsaKeyPairWithoutAuthentication()
+            }
+        } else {
+            return generateRsaKeyPairWithoutAuthentication()
+        }
+    }
+
+    /**
+     * Genera un par de claves RSA en el Android KeyStore que requieren autenticación del usuario.
+     * La autenticación es necesaria para cada uso de la clave privada.
+     */
+    @Throws(
+        NoSuchAlgorithmException::class,
+        NoSuchProviderException::class,
+        InvalidAlgorithmParameterException::class,
+        KeyPermanentlyInvalidatedException::class // Puede ocurrir si se cambia la biometría
+    )
+    private fun generateRsaKeyPairWithoutAuthentication(): KeyPair {
+        val keyGenerator = KeyPairGenerator.getInstance(
+            KeyProperties.KEY_ALGORITHM_RSA,
+            ANDROID_KEYSTORE)
+
+        val keyGenParameterSpecBuilder2 : KeyGenParameterSpec.Builder = KeyGenParameterSpec.Builder(
+            KEY_PAIR_ALIAS_RSA_NO_AUTH,
+            KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT or
+                    KeyProperties.PURPOSE_SIGN or KeyProperties.PURPOSE_VERIFY
+        )
+            .setKeySize(2048)
+            .setDigests(KeyProperties.DIGEST_SHA256, KeyProperties.DIGEST_SHA512)
+            .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_RSA_PKCS1, KeyProperties.ENCRYPTION_PADDING_RSA_OAEP)
+            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PSS)
+
+        keyGenerator.initialize(keyGenParameterSpecBuilder2.build())
+        return keyGenerator.generateKeyPair()
+    }
+
+    /**
+     * Intenta obtener la clave privada RSA del KeyStore.
+     * Si requiere autenticación, prepara un Cipher para ser usado con BiometricPrompt.
+     */
+    @Throws(
+        UnrecoverableKeyException::class,
+        NoSuchAlgorithmException::class,
+        KeyStoreException::class,
+        IOException::class,
+        CertificateException::class
+    )
+    fun getRsaPrivateKeyNoAuth(): PrivateKey? {
+/*
+        val aliases = getKeyStore().aliases()
+        aliases.toList().stream().forEach {
+            Log.d("AndroidKeystoreUtil", "Alias: $it")
+        }
+*/
+        return getKeyStore().getKey(KEY_PAIR_ALIAS_RSA_NO_AUTH, null) as? PrivateKey
+    }
+
+    /**
+     * Intenta obtener la clave pública RSA del KeyStore.
+     * La clave pública no requiere autenticación.
+     */
+    @Throws(
+        KeyStoreException::class,
+        NoSuchAlgorithmException::class,
+        UnrecoverableKeyException::class
+    )
+    fun getRsaPublicKeyNoAuth(): PublicKey? {
+        val entry = getKeyStore().getEntry(KEY_PAIR_ALIAS_RSA_NO_AUTH, null)
+        return if (entry is KeyStore.PrivateKeyEntry) {
+            entry.certificate.publicKey
+        } else {
+            null
+        }
+    }
+
 
 }

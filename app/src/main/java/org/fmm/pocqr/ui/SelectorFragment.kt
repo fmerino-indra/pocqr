@@ -43,8 +43,16 @@ class SelectorFragment : Fragment() {
         binding.btnManage.setOnClickListener {
             navigateToManagement()
         }
+        binding.btnTest.setOnClickListener {
+            navigateToTest()
+        }
     }
 
+    private fun navigateToTest() {
+        findNavController().navigate(
+            R.id.action_blankFragment_to_testFragment
+        )
+    }
     private fun navigateToManagement() {
         findNavController().navigate(
             R.id.action_blankFragment_to_managementFragment

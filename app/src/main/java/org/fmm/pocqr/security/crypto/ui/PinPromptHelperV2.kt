@@ -9,16 +9,16 @@ import java.security.PrivateKey
 import java.security.Signature
 import javax.crypto.Cipher
 
-const val DEVICE_AUTHENTICATION_FMM = 0x0800//1 shl 11
+const val DEVICE_AUTHENTICATION_FMMV2 = 0x0800//1 shl 11
 
-sealed class PinOperationCryptoObject {
+sealed class PinOperationCryptoObjectV2 {
     data class PinCipherObject(val cipher: Cipher, val privateKey: PrivateKey):
         PinOperationCryptoObject()
     data class PinSignatureObject(val unInitSignature: Signature, val privateKey: PrivateKey):
         PinOperationCryptoObject()
 //    object None: BiometricOperationCryptoObject() // Para cuando no se necesita
 }
-class PinPromptHelperV2(
+class PinPromptHelper(
     private val activity: FragmentActivity,
     private val authenticationLauncher: ActivityResultLauncher<Intent>
     //,

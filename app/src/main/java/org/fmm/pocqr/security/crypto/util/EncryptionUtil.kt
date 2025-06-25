@@ -17,7 +17,7 @@ import javax.crypto.spec.GCMParameterSpec
 class EncryptionUtil {
 
     //ENCRYPTION
-    private val RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding"
+    private val RSA_TRANSFORMATION_FOR_ASYMMETRIC_KEY = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding"
 //    private const val RSA_ALGORITHM = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding" // OAEP para cifrado
     private val AES_GCM_TRANSFORMATION = "AES/GCM/NoPadding"
 
@@ -31,7 +31,7 @@ class EncryptionUtil {
     private var _signature: Signature = Signature.getInstance(RSA_SIGNATURE_ALGORITHM)
     val signature get() = _signature
 
-    private var _rsaCipher: Cipher = Cipher.getInstance(RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY) // OAEP padding
+    private var _rsaCipher: Cipher = Cipher.getInstance(RSA_TRANSFORMATION_FOR_ASYMMETRIC_KEY) // OAEP padding
     val rsaCipher get() = _rsaCipher
 
     private var _aesCipher: Cipher = Cipher.getInstance(AES_GCM_TRANSFORMATION) //
@@ -65,7 +65,8 @@ class EncryptionUtil {
     }
 
     fun encryptByteArray(base64Data: String, publicKey: PublicKey): ByteArray {
-        return encryptByteArray(cleanAndDecoded(base64Data), publicKey)
+        return encryptByteArray(decodeB64(base64Data), publicKey)
+//        return encryptByteArray(cleanAndDecoded(base64Data), publicKey)
     }
     /**
      * Encripta los datos utilizando la clave pública proporcionada.
@@ -174,7 +175,8 @@ class EncryptionUtil {
     fun publicKeyFromString(encodedPublicKey: String): PublicKey? {
         // Limpia cualquier espacio en blanco o salto de línea en la cadena Base64.
         // Decodifica la cadena Base64 a bytes binarios (formato X.509 DER).
-        val decodedBytes: ByteArray = cleanAndDecoded(encodedPublicKey)
+        val decodedBytes: ByteArray = decodeB64(encodedPublicKey)
+//        val decodedBytes: ByteArray = cleanAndDecoded(encodedPublicKey)
 
         // Crear un KeySpec a partir de los bytes decodificados
         val keySpec = X509EncodedKeySpec(decodedBytes)
@@ -201,15 +203,28 @@ class EncryptionUtil {
          * Decodifica la cadena Base64 a bytes binarios (formato X.509 DER si es una clave pública).
          * Debería estar en otra clase, pero de momento...
          */
-        fun cleanAndDecoded(b64EncodedString: String): ByteArray {
+/*
+        private fun cleanAndDecoded(b64EncodedString: String): ByteArray {
             val cleanBase64 = b64EncodedString.replace("\\s".toRegex(), "")
             val decodedBytes: ByteArray = Base64.decode(cleanBase64, Base64.DEFAULT)
             return decodedBytes
         }
 
-        fun encodeAndClean(data: ByteArray): String {
+        private fun encodeAndClean(data: ByteArray): String {
             val base64Encoded = Base64.encodeToString(data, Base64.DEFAULT)
             return base64Encoded.replace("\\s".toRegex(), "")
+        }
+*/
+        fun decodeB64(b64EncodedString: String): ByteArray {
+//            val cleanBase64 = b64EncodedString.replace("\\s".toRegex(), "")
+            val decodedBytes: ByteArray = Base64.decode(b64EncodedString, Base64.NO_WRAP)
+            return decodedBytes
+        }
+
+        fun encodeB64(data: ByteArray): String {
+            val base64Encoded = Base64.encodeToString(data, Base64.NO_WRAP)
+            return base64Encoded
+//            return base64Encoded.replace("\\s".toRegex(), "")
         }
     }
 }

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/llItem"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".ui.TestFragment">
+
+    <TextView
+        android:id="@+id/keyAlias"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Key Alias"/>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/keyType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:hint="Key Type" />
+        <TextView
+            android:id="@+id/keyLength"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:hint="Key Size" />
+    </LinearLayout>
+    <TextView
+        android:id="@+id/keyPurposes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Purposes" />
+
+    <!-- TODO: Update blank fragment layout -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Text to encrypt"
+        android:labelFor="@id/txtClearText"/>
+
+    <EditText
+        android:id="@+id/txtClearText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ems="10"
+        android:inputType="text"
+        tools:text="Text to encrypt" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnEncryptPKCS1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Encrypt PKCS1" />
+        <Button
+            android:id="@+id/btnDecryptPKCS1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Decrypt PKCS1" />
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnEncryptOAEP"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Encrypt OAEP" />
+        <Button
+            android:id="@+id/btnDecryptOAEP"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Decrypt OAEP" />
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/txtEncryptedText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Encrypted Text"
+        android:maxLines="10"
+        android:minLines="5"/>
+
+    <TextView
+        android:id="@+id/txtDecryptedText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Decrypted Text"
+        android:maxLines="10"
+        android:minLines="5"/>
+
+</LinearLayout>

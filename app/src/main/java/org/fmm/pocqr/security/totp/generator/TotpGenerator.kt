@@ -1,8 +1,9 @@
 package org.fmm.pocqr.security.totp.generator
 
+import android.util.Base64
+import org.fmm.pocqr.security.crypto.util.EncryptionUtil
 import java.nio.ByteBuffer
 import java.security.SecureRandom
-import java.util.Base64
 import java.util.concurrent.TimeUnit
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
@@ -24,7 +25,7 @@ object TotpGenerator {
      * @return El código TOTP generado como String.
      */
     fun generateTotp(seedBase64: String, timeInMillis: Long): String {
-        val seedBytes = Base64.getDecoder().decode(seedBase64)
+        val seedBytes: ByteArray = Base64.decode(seedBase64, Base64.DEFAULT)
         val timeStep = timeInMillis / TimeUnit.SECONDS.toMillis(TIME_STEP_SECONDS) // Contador de tiempo
 
         val key = SecretKeySpec(seedBytes, "HmacSHA1")
@@ -53,9 +54,8 @@ object TotpGenerator {
         val seedBytes = ByteArray(seedSize)
         random.nextBytes(seedBytes)
         // Codificar la semilla a Base 64 para facilitar su manejo
-        val seedB64 = android.util.Base64.encodeToString(seedBytes, android.util.Base64.DEFAULT)
-//        val seedB64 = Base64.encodeToString(seedBytes, Base64.DEFAULT)
-        return cleanString(seedB64)
+        return EncryptionUtil.encodeB64(seedBytes)
+//        return EncryptionUtil.encodeAndClean(seedBytes)
     }
     fun validateTotp(seedBase64: String, totpToValidate: String, timeInMillis: Long): Boolean {
         val currentStep = timeInMillis / TimeUnit.SECONDS.toMillis(TIME_STEP_SECONDS)

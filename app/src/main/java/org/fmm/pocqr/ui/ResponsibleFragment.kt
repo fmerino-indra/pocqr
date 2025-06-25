@@ -3,6 +3,7 @@ package org.fmm.pocqr.ui
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.util.Base64
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -29,7 +30,7 @@ import org.fmm.pocqr.security.totp.generator.TotpGenerator
 import org.fmm.pocqr.ui.qr.QRGenBottomSheetDialogFragment
 import org.fmm.pocqr.ui.qr.QRReaderBottomSheetDialogFragment
 import java.security.InvalidAlgorithmParameterException
-import java.util.Base64
+import java.security.interfaces.RSAPublicKey
 
 
 class ResponsibleFragment : Fragment() {
@@ -47,6 +48,7 @@ class ResponsibleFragment : Fragment() {
             .StartActivityForResult()
     ) { result: ActivityResult ->
         Log.d("ResponsibleFragment", "Este es el resultado ${result.data}")
+//        currentAuthCallback?.invoke(result)
         asymmetricRSAManager.handlePinDecryption(result.resultCode)
     }
 
@@ -57,10 +59,16 @@ class ResponsibleFragment : Fragment() {
             asymmetricRSAManager.handlePinSignature(result.resultCode)
         }
 
-    //    private lateinit var biometricPromptHelper: BiometricPromptHelper
-    private lateinit var asymmetricRSAManager: AsymmetricRSAHybridCipherManager
+/*
+    private val newAuthenticationLauncher = registerForActivityResult(
+        ActivityResultContracts
+            .StartActivityForResult()
+    ) { result: ActivityResult ->
+        asymmetricRSAManager.authCallback(result)
+    }
+*/
 
-    // MutableSharedFlow para emitir eventos
+    private lateinit var asymmetricRSAManager: AsymmetricRSAHybridCipherManager
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -127,6 +135,7 @@ class ResponsibleFragment : Fragment() {
                     binding.signature.setText(newSignature)
                     buttonStates()
                 }
+/*
                 asymmetricRSAManager.decryptedUpdatedEvent.collect { decryptedData ->
                     binding.totpSeed.text = decryptedData
                     cleanTotpSeed = decryptedData
@@ -134,6 +143,7 @@ class ResponsibleFragment : Fragment() {
 
                     buttonStates()
                 }
+*/
             }
         }
     }
@@ -145,6 +155,8 @@ class ResponsibleFragment : Fragment() {
                 this.requireActivity(),
                 this.authenticationLauncher,
                 this.decryptionAuthenticationLauncher
+//                ,
+//                this.newAuthenticationLauncher
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -203,7 +215,17 @@ class ResponsibleFragment : Fragment() {
             // 1 Recupera par de claves o las crea
 
             val publicKey = AndroidKeystoreUtil.getRsaPublicKey()
-            binding.pubKey.setText(Base64.getEncoder().encodeToString(publicKey?.encoded))
+            val b64PubKey = EncryptionUtil.encodeB64(publicKey!!.encoded)
+            if (publicKey is RSAPublicKey) {
+                Log.d("ResponsibleFragment", "Public Key: $publicKey")
+                Log.d("ResponsibleFragment", "Public Key:B64 : $b64PubKey")
+                Log.d("ResponsibleFragment", "Public Key:Algoritmo : ${publicKey.algorithm}")
+                Log.d("ResponsibleFragment", "Public Key:Módulo : ${publicKey.modulus}")
+                Log.d("ResponsibleFragment", "Public Key:PublicExponent : ${publicKey
+                    .publicExponent}")
+            }
+            binding.pubKey.setText(b64PubKey)
+//            binding.pubKey.setText(Base64.getEncoder().encodeToString(publicKey?.encoded))
         } catch (iape: InvalidAlgorithmParameterException) {
             // Si no tiene huella configurada, lleva dentro IllegalStateException
         } catch (ise: IllegalStateException) {
@@ -237,7 +259,7 @@ class ResponsibleFragment : Fragment() {
         return buildJsonObject {
 
             put("signature", binding.signature.text.toString())
-            put("publicKey", Base64.getEncoder().encodeToString(publicKey?.encoded))
+            put("publicKey", EncryptionUtil.encodeB64(publicKey!!.encoded))
             put("data", data["data"]!!)
         }
 
@@ -280,12 +302,68 @@ class ResponsibleFragment : Fragment() {
         Log.d("ResponsibleFragment", "QR read: $stringRead")
         val qrEncryptedData = Json.decodeFromString<QREncryptedData>(stringRead)
         this.qrEncryptedData = qrEncryptedData
+        Log.d("ResponsibleFragment", "Encrypted TOTPSeed: ${qrEncryptedData.totpSeed}")
 
         binding.name.setText(qrEncryptedData.qrSignedData.data.name)
         binding.community.setText(qrEncryptedData.qrSignedData.data.community)
 
         val encryptedSeed =  qrEncryptedData.totpSeed
-        val decryptedSeed = asymmetricRSAManager.decryptAsymmetricByteArray(encryptedSeed)
+
+//        subscribeSymmetricKeyDecryptEvent()
+
+        lifecycleScope.launch {
+            try {
+/*
+                val decryptedSeed = asymmetricRSAManager.decryptAsymmetricByteArrayV2(
+                    EncryptionUtil.cleanAndDecoded(encryptedSeed)
+                )
+*/
+                val decryptedSeed = asymmetricRSAManager.decryptAsymmetricByteArrayV2(
+                    EncryptionUtil.decodeB64(encryptedSeed)
+                )
+
+            } catch (e: Exception) {
+                Log.e("ResponsibleFragment", "Se ha producido una excepción al desencriptar:",e)
+            }
+        }
+    }
+    private fun subscribeSymmetricKeyDecryptEvent() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                asymmetricRSAManager.decryptedUpdatedEvent.collect { decryptedData ->
+                    binding.totpSeed.text = decryptedData
+                    cleanTotpSeed = decryptedData
+                    binding.totpEntered.isEnabled = true
+
+                    buttonStates()
+                }
+            }
+        }
+    }
+
+    private fun subscribeTotpSeedDecryptEvent() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                asymmetricRSAManager.decryptedUpdatedEvent.collect { decryptedData ->
+                    binding.totpSeed.text = decryptedData
+                    cleanTotpSeed = decryptedData
+                    binding.totpEntered.isEnabled = true
+
+                    buttonStates()
+                }
+            }
+        }
+    }
+
+    private fun subscribeSignatureEvent() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                asymmetricRSAManager.signatureUpdatedEvent.collect { newSignature ->
+                    binding.signature.setText(newSignature)
+                    buttonStates()
+                }
+            }
+        }
 
     }
 

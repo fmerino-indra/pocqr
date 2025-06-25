@@ -34,6 +34,7 @@ import org.fmm.pocqr.security.crypto.util.EncryptionUtil
 import org.fmm.pocqr.security.totp.generator.TotpGenerator
 import org.fmm.pocqr.ui.qr.QRGenBottomSheetDialogFragment
 import org.fmm.pocqr.ui.qr.QRReaderBottomSheetDialogFragment
+import java.security.interfaces.RSAPublicKey
 
 class BrotherFragment : Fragment() {
     private var _binding : FragmentBrotherBinding?=null
@@ -180,10 +181,14 @@ class BrotherFragment : Fragment() {
     }
 
     private fun showQR() {
+        Log.d("BrotherFragment", "TOTPSeed: ${qrEncryptedData!!.totpSeed}")
+
         val encryptedTOTPSeed = encryptTOTPSeed()
         this.qrEncryptedData = qrEncryptedData!!.copy(
-            totpSeed = Base64.encodeToString(encryptedTOTPSeed, Base64.DEFAULT)
+            totpSeed = EncryptionUtil.encodeB64(encryptedTOTPSeed)
+//            totpSeed = EncryptionUtil.encodeAndClean(encryptedTOTPSeed)
         )
+        Log.d("BrotherFragment", "Encrypted TOTPSeed: ${qrEncryptedData!!.totpSeed}")
         val json = createEncryptedJSON()
         qrGenBottomSheetDialogFragment.uri = json.toString()
         qrGenBottomSheetDialogFragment.show(parentFragmentManager, "qrGeneratorBottomSheet")
@@ -194,6 +199,23 @@ class BrotherFragment : Fragment() {
      * Encrypts the TOTP Seed
      */
     private fun encryptTOTPSeed(): ByteArray {
+        val pubKey = encryptionUtil.publicKeyFromString(originalQRSignedData!!.publicKey)!!
+        Log.d("BrotherFragment", "TOTPSeed: ${EncryptionUtil.decodeB64(qrEncryptedData!!
+            .totpSeed).contentToString()}")
+//        Log.d("BrotherFragment", "TOTPSeed: ${EncryptionUtil.cleanAndDecoded(qrEncryptedData!!
+//            .totpSeed).contentToString()}")
+//        Log.d("BrotherFragment", "Public Key: $pubKey")
+//        Log.d("BrotherFragment", "Public Key: ${originalQRSignedData!!.publicKey}")
+
+        if (pubKey is RSAPublicKey) {
+            Log.d("BrotherFragment", "Public Key: $pubKey")
+            Log.d("BrotherFragment", "Public Key:B64 : ${originalQRSignedData!!.publicKey}")
+            Log.d("BrotherFragment", "Public Key:Algoritmo : ${pubKey.algorithm}")
+            Log.d("BrotherFragment", "Public Key:Módulo : ${pubKey.modulus}")
+            Log.d("BrotherFragment", "Public Key:PublicExponent : ${pubKey
+                .publicExponent}")
+        }
+
         return encryptionUtil.encryptByteArray(
             qrEncryptedData!!.totpSeed,
             encryptionUtil.publicKeyFromString(originalQRSignedData!!.publicKey)!!
@@ -206,7 +228,7 @@ class BrotherFragment : Fragment() {
     private fun onQRRead(stringRead: String) {
         qrReaderBottomDialog.dismiss()
 
-        Log.d("ResponsibleFragment", "QR read: $stringRead")
+        Log.d("BrotherFragment", "QR read: $stringRead")
         val qrSignedData = Json.decodeFromString< QRSignedData>(stringRead)
         this.originalQRSignedData = qrSignedData
         this.qrEncryptedData = QREncryptedData(qrSignedData, clearTotpSeed)
@@ -228,12 +250,13 @@ class BrotherFragment : Fragment() {
     }
     private fun validateSignature(qrSignedData: QRSignedData): Boolean {
         val jsonToValidate =createJSONToValidate(qrSignedData.data)
-        Log.d("ResponsibleFragment", "JSON to sign: $jsonToValidate")
-
+        val pubKey = encryptionUtil.publicKeyFromString(qrSignedData.publicKey)
+        Log.d("BrotherFragment", "JSON to sign: $jsonToValidate")
+        Log.d("BrotherFragment", "PubKey Signature Validation: $pubKey")
         return encryptionUtil.verifySignature(
             jsonToValidate.toString().toByteArray(),
             signatureToVerify = Base64.decode(qrSignedData.signature, Base64.DEFAULT),
-            publicKey = encryptionUtil.publicKeyFromString(qrSignedData.publicKey))
+            publicKey = pubKey)
     }
 
     private fun createEncryptedJSON(): JsonObject {
