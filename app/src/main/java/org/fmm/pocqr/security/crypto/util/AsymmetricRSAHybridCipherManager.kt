@@ -526,10 +526,16 @@ class AsymmetricRSAHybridCipherManager(
             (activity.application as PocQRApp).applicationSccope.launch {
                 try {
 
+/*
                     val cip = (lastCryptoOperationObject as PinOperationCryptoObject
                     .PinCipherObject).cipher
+*/
+
                     val pK = (lastCryptoOperationObject as PinOperationCryptoObject
                     .PinCipherObject).privateKey
+
+                    val cip = encryptionUtil.prepareToDecrypt(pK)
+
 //                    val decryptedBytes = encryptionUtil.decryptByteArray(dataToDecrypt, pK)
                     cip.init(Cipher.DECRYPT_MODE, pK)
                     val decryptedBytes = cip.doFinal(dataToDecrypt)
@@ -541,9 +547,14 @@ class AsymmetricRSAHybridCipherManager(
                         cip.doFinal(dataToDecrypt)
                     }
                      */
-
                     promise.complete(EncryptionUtil.encodeB64(decryptedBytes));
-//                    promise.complete(EncryptionUtil.encodeAndClean(decryptedBytes));
+
+                    /*
+                                        val retorno = promise.complete(EncryptionUtil.encodeB64(decryptedBytes));
+                                        Log.d("AsymmetricRSAHybridCipherManager", "El resultado de promise.complete =" +
+                                                " $retorno")
+                    */
+
                 } catch (unae: UserNotAuthenticatedException) {
                     unae.printStackTrace()
                     // Si la desencriptación falla, la promesa final también falla.
@@ -626,10 +637,17 @@ class AsymmetricRSAHybridCipherManager(
         // El objeto signature debe pasarse el mismo inicializado.
         // Si la clave está protegida con PIN, falla en initSignature.
         // Puede usarse cualquier CryptoObject, de hecho, se invoca a encryptionUtil
+        val promise = currentDecryptionPromise
+        currentDecryptionPromise = null
+        if (promise == null) {
+            // return@handlePinDecryption es lo mismo que lo siguiente, porque es la función más
+            // cercana
+            return
+        }
 
         biometricPromptHelper.authenticate(
-            promptTitle = "Sign document",
-            promptSubtitle = "Authenticate to digital sign",
+            promptTitle = "Decrypt text",
+            promptSubtitle = "Authenticate to decrypt text",
             cryptoOperationObject = BiometricOperationCryptoObject.CipherObject
                 (encryptionUtil.prepareToDecrypt(privateKey)),
             onSuccess = { authResult ->
@@ -645,13 +663,16 @@ class AsymmetricRSAHybridCipherManager(
 
                         val decryptedBase64 =
                             Base64.encodeToString(decryptedData, Base64.DEFAULT)
-                        _decryptedUpdatedEvent.emit(decryptedBase64)
+                        promise.complete(decryptedBase64)
+//                        _decryptedUpdatedEvent.emit(decryptedBase64)
                     } catch (e: Exception) {
                         Toast.makeText(
                             activity, "Error reintentando descifrar: ${e.message}", Toast
                                 .LENGTH_SHORT
                         ).show()
                         e.printStackTrace()
+                        promise.completeExceptionally(
+                            SecurityException(e.message))
                     }
                 }
             },
@@ -660,12 +681,18 @@ class AsymmetricRSAHybridCipherManager(
                     activity, "Error de autenticación: $errString ($errorCode)", Toast
                         .LENGTH_LONG
                 ).show()
+                promise.completeExceptionally(
+                    SecurityException(errString.toString()))
+
             },
             onFailed = {
                 Toast.makeText(
                     activity, "Autenticación de descrifrado fallida o cancelada.", Toast
                         .LENGTH_SHORT
                 ).show()
+                promise.completeExceptionally(
+                    SecurityException("Autenticación de descrifrado fallida o cancelada."))
+
             }
         )
     }

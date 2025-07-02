@@ -6,10 +6,13 @@ import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.SecureRandom
 import java.security.Signature
+import java.security.spec.MGF1ParameterSpec
 import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.OAEPParameterSpec
+import javax.crypto.spec.PSource
 
 /**
  * Clase para encriptar / desencriptar datos usando la SecretKey del Keystore
@@ -64,26 +67,6 @@ class EncryptionUtil {
         //return Base64.encodeToString(combined, Base64.DEFAULT)
     }
 
-    fun encryptByteArray(base64Data: String, publicKey: PublicKey): ByteArray {
-        return encryptByteArray(decodeB64(base64Data), publicKey)
-//        return encryptByteArray(cleanAndDecoded(base64Data), publicKey)
-    }
-    /**
-     * Encripta los datos utilizando la clave pública proporcionada.
-     * RSA/ECB/OAEPWithSHA-256AndMGF1Padding
-     * Los datos a cifrar no pueden superar los 214 bytes
-     *
-     * @param data Los datos a encriptar.
-     * @param publicKey La SecretKey obtenida del Android Keystore.
-     * @return Una cadena Base64 que contiene el IV y los datos encriptados.
-     */
-    fun encryptByteArray(data: ByteArray, publicKey: PublicKey): ByteArray {
-        //val cipher = Cipher.getInstance(RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY)
-        _rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        val encryptedBytes = _rsaCipher.doFinal(data)
-
-        return encryptedBytes
-    }
    /**
     * Desencripta los datos utilizando la clave simétrica proporcionada.
     * @param encryptedDataBase64 La cadena Base64 que contiene el IV y los datos encriptados.
@@ -111,6 +94,51 @@ class EncryptionUtil {
 
         return aesCipher.doFinal(encryptedData)
     }
+    fun getIv(encryptedDataBase64: String): ByteArray {
+        val combined = Base64.decode(encryptedDataBase64, Base64.DEFAULT)
+        return combined.copyOfRange(0, GCM_IV_LENGTH)
+    }
+    /**
+     * ASYMMETRIC CRYPTOGRAPHY
+     */
+
+    /**
+     * Encripta los datos utilizando la clave pública proporcionada.
+     * RSA/ECB/OAEPWithSHA-256AndMGF1Padding
+     * Los datos a cifrar no pueden superar los 214 bytes
+     *
+     * @param data Los datos a encriptar (En Base64)
+     * @param publicKey La SecretKey obtenida del Android Keystore.
+     * @return Una cadena Base64 que contiene el IV y los datos encriptados.
+     */
+    fun encryptByteArray(base64Data: String, publicKey: PublicKey): ByteArray {
+        return encryptByteArray(decodeB64(base64Data), publicKey)
+    }
+    /**
+     * Encripta los datos utilizando la clave pública proporcionada.
+     * RSA/ECB/OAEPWithSHA-256AndMGF1Padding
+     * Los datos a cifrar no pueden superar los 214 bytes
+     *
+     * @param data Los datos a encriptar.
+     * @param publicKey La SecretKey obtenida del Android Keystore.
+     * @return Una cadena Base64 que contiene el IV y los datos encriptados.
+     */
+    fun encryptByteArray(data: ByteArray, publicKey: PublicKey): ByteArray {
+        //val cipher = Cipher.getInstance(RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY)
+        //_rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey)
+        initCipherForEncryptOAEP(publicKey)
+        val encryptedBytes = _rsaCipher.doFinal(data)
+
+        return encryptedBytes
+    }
+
+    private fun initCipherForEncryptOAEP(publicKey: PublicKey) {
+        val pS: OAEPParameterSpec = OAEPParameterSpec("SHA-256", "mgf1",
+            MGF1ParameterSpec("SHA-1"),
+            PSource.PSpecified.DEFAULT
+        )
+        _rsaCipher.init(Cipher.ENCRYPT_MODE, publicKey, pS)
+    }
 
     /**
      * Desencripta los datos utilizando la clave private proporcionada.
@@ -121,6 +149,7 @@ class EncryptionUtil {
     fun decryptByteArray(encryptedDataBase64: String, privateKey: PrivateKey): ByteArray {
         return decryptByteArray(Base64.decode(encryptedDataBase64, Base64.DEFAULT),privateKey)
     }
+
     /**
      * Desencripta los datos utilizando la clave private proporcionada.
      * @param encryptedByteArray El array de bytes que representa los datos encriptados.
@@ -131,13 +160,21 @@ class EncryptionUtil {
 
 //        val cipherRsa = Cipher.getInstance(RSA_TRANSFORMATION_FOR_SYMMETRIC_KEY)
         // Aquí es donde lanza la excepción de autenticación
-        _rsaCipher.init(Cipher.DECRYPT_MODE, privateKey)
+        //_rsaCipher.init(Cipher.DECRYPT_MODE, privateKey)
+        initCipherForDecryptOAEP(privateKey)
         return _rsaCipher.doFinal(encryptedByteArray)
     }
 
-    fun getIv(encryptedDataBase64: String): ByteArray {
-        val combined = Base64.decode(encryptedDataBase64, Base64.DEFAULT)
-        return combined.copyOfRange(0, GCM_IV_LENGTH)
+    /**
+     * Inicializa el Cipher interno para desencriptar.
+     * @param privateKey la clave privada
+     */
+    fun initCipherForDecryptOAEP(privateKey: PrivateKey) {
+        val pS: OAEPParameterSpec = OAEPParameterSpec("SHA-256", "mgf1",
+            MGF1ParameterSpec("SHA-1"),
+            PSource.PSpecified.DEFAULT
+        )
+        _rsaCipher.init(Cipher.DECRYPT_MODE, privateKey, pS)
     }
 
     fun signData(dataToSign: ByteArray, privateKey: PrivateKey): ByteArray {
@@ -157,7 +194,8 @@ class EncryptionUtil {
     }
 
     fun prepareToDecrypt(privateKey: PrivateKey): Cipher {
-        _rsaCipher.init(Cipher.DECRYPT_MODE, privateKey)
+//        _rsaCipher.init(Cipher.DECRYPT_MODE, privateKey)
+        initCipherForDecryptOAEP(privateKey)
         return _rsaCipher
     }
 

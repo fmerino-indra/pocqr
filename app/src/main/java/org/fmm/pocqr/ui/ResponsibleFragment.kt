@@ -321,7 +321,7 @@ class ResponsibleFragment : Fragment() {
                 val decryptedSeed = asymmetricRSAManager.decryptAsymmetricByteArrayV2(
                     EncryptionUtil.decodeB64(encryptedSeed)
                 )
-
+                binding.totpSeed.text = decryptedSeed
             } catch (e: Exception) {
                 Log.e("ResponsibleFragment", "Se ha producido una excepción al desencriptar:",e)
             }
