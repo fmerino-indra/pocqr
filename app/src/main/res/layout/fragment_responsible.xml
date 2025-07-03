@@ -84,6 +84,7 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:layout_gravity="end"
+        android:layout_marginBottom="10dp"
 
         >
         <Button
@@ -123,25 +124,41 @@
         android:layout_height="wrap_content"
         android:text="TOTP Calculated"
         android:textSize="12sp"
-        android:labelFor="@id/totpEntered"
+        android:labelFor="@id/totpCalculated"
         />
     <TextView
-        android:id="@+id/totpEntered"
+        android:id="@+id/totpCalculated"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textSize="24sp"
         android:enabled="false"
         />
+    <TextView
+        android:id="@+id/lblTotpEntered"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="TOTP Entered"
+        android:textSize="12sp"
+        android:labelFor="@id/totpEntered"
+        />
+    <EditText
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/totpEntered"
+        android:inputType="text"
+        tools:ignore="Autofill" />
 
     <ImageView
         android:id="@+id/imgCheck"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:src="@drawable/ic_check_green" />
+        android:src="@drawable/ic_check_green"
+        tools:ignore="ContentDescription" />
     <ImageView
         android:id="@+id/imgCheck2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:tint="#00FF00"
-        android:src="@drawable/ic_check" />
+        android:src="@drawable/ic_check"
+        tools:ignore="ContentDescription" />
 </LinearLayout>

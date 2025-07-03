@@ -2,6 +2,8 @@ package org.fmm.pocqr.ui
 
 import android.app.Activity
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.util.Base64
 import android.util.Log
@@ -306,6 +308,8 @@ class ResponsibleFragment : Fragment() {
 
         binding.name.setText(qrEncryptedData.qrSignedData.data.name)
         binding.community.setText(qrEncryptedData.qrSignedData.data.community)
+        binding.signature.setText(qrEncryptedData.qrSignedData.signature)
+        binding.pubKey.setText(qrEncryptedData.qrSignedData.publicKey)
 
         val encryptedSeed =  qrEncryptedData.totpSeed
 
@@ -321,7 +325,12 @@ class ResponsibleFragment : Fragment() {
                 val decryptedSeed = asymmetricRSAManager.decryptAsymmetricByteArrayV2(
                     EncryptionUtil.decodeB64(encryptedSeed)
                 )
+                cleanTotpSeed = decryptedSeed
                 binding.totpSeed.text = decryptedSeed
+
+                val totpCalculated = generateTotp(cleanTotpSeed)
+                binding.totpCalculated.text = totpCalculated
+                buttonStates()
             } catch (e: Exception) {
                 Log.e("ResponsibleFragment", "Se ha producido una excepción al desencriptar:",e)
             }
@@ -333,7 +342,7 @@ class ResponsibleFragment : Fragment() {
                 asymmetricRSAManager.decryptedUpdatedEvent.collect { decryptedData ->
                     binding.totpSeed.text = decryptedData
                     cleanTotpSeed = decryptedData
-                    binding.totpEntered.isEnabled = true
+                    binding.totpCalculated.isEnabled = true
 
                     buttonStates()
                 }
@@ -347,7 +356,7 @@ class ResponsibleFragment : Fragment() {
                 asymmetricRSAManager.decryptedUpdatedEvent.collect { decryptedData ->
                     binding.totpSeed.text = decryptedData
                     cleanTotpSeed = decryptedData
-                    binding.totpEntered.isEnabled = true
+                    binding.totpCalculated.isEnabled = true
 
                     buttonStates()
                 }
@@ -370,16 +379,18 @@ class ResponsibleFragment : Fragment() {
     private fun generateTotp(seed:String):String {
         return TotpGenerator.generateTotp(seedBase64 = seed, timeInMillis = System.currentTimeMillis() )
     }
-    private fun ResponsibleFragment.validateTOTP() {
+    private fun validateTOTP() {
         if (qrEncryptedData == null)
             return
-        val totpCalculated = generateTotp(qrEncryptedData!!.totpSeed!!)
+        val totpCalculated = generateTotp(cleanTotpSeed)
         val totpEntered: String = binding.totpEntered.text.toString()
+
         if (totpCalculated == totpEntered) {
+            binding.imgCheck.imageTintList = ColorStateList.valueOf(Color.GREEN)
             binding.imgCheck.setImageResource(R.drawable.ic_check_green)
         } else {
+            binding.imgCheck.imageTintList = ColorStateList.valueOf(Color.RED)
             binding.imgCheck.setImageResource(R.drawable.ic_close)
-
         }
     }
 

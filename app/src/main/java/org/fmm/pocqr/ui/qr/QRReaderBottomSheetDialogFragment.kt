@@ -11,8 +11,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.zxing.multi.GenericMultipleBarcodeReader
-import com.google.zxing.qrcode.QRCodeReader
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
 import org.fmm.pocqr.databinding.FragmentQRReaderBinding
