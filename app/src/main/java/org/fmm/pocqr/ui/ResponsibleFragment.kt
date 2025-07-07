@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Base64
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -22,6 +21,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.fmm.pocqr.PocQRApp
 import org.fmm.pocqr.R
 import org.fmm.pocqr.databinding.FragmentResponsibleBinding
 import org.fmm.pocqr.dto.QREncryptedData
@@ -29,8 +29,8 @@ import org.fmm.pocqr.security.crypto.util.AndroidKeystoreUtil
 import org.fmm.pocqr.security.crypto.util.AsymmetricRSAHybridCipherManager
 import org.fmm.pocqr.security.crypto.util.EncryptionUtil
 import org.fmm.pocqr.security.totp.generator.TotpGenerator
-import org.fmm.pocqr.ui.qr.QRGenBottomSheetDialogFragment
-import org.fmm.pocqr.ui.qr.QRReaderBottomSheetDialogFragment
+import org.fmm.qr.ui.QRGenBottomSheetDialogFragment
+import org.fmm.qr.ui.QRReaderBottomSheetDialogFragment
 import java.security.InvalidAlgorithmParameterException
 import java.security.interfaces.RSAPublicKey
 
@@ -155,6 +155,7 @@ class ResponsibleFragment : Fragment() {
             asymmetricRSAManager = AsymmetricRSAHybridCipherManager(
                 this.requireContext(),
                 this.requireActivity(),
+                (this.requireActivity().application as PocQRApp).applicationSccope,
                 this.authenticationLauncher,
                 this.decryptionAuthenticationLauncher
 //                ,

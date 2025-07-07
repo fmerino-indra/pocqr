@@ -23,6 +23,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
+import org.fmm.pocqr.PocQRApp
 import org.fmm.pocqr.R
 import org.fmm.pocqr.databinding.FragmentBrotherBinding
 import org.fmm.pocqr.dto.QRData
@@ -32,8 +33,8 @@ import org.fmm.pocqr.security.crypto.util.AndroidKeystoreUtil
 import org.fmm.pocqr.security.crypto.util.AsymmetricRSAHybridCipherManager
 import org.fmm.pocqr.security.crypto.util.EncryptionUtil
 import org.fmm.pocqr.security.totp.generator.TotpGenerator
-import org.fmm.pocqr.ui.qr.QRGenBottomSheetDialogFragment
-import org.fmm.pocqr.ui.qr.QRReaderBottomSheetDialogFragment
+import org.fmm.qr.ui.QRGenBottomSheetDialogFragment
+import org.fmm.qr.ui.QRReaderBottomSheetDialogFragment
 import java.security.interfaces.RSAPublicKey
 
 class BrotherFragment : Fragment() {
@@ -106,9 +107,11 @@ class BrotherFragment : Fragment() {
      */
     private fun initSecurity() {
         try {
+
             asymmetricRSAManager = AsymmetricRSAHybridCipherManager(
                 this.requireContext(),
                 this.requireActivity(),
+                (this.requireActivity().application as PocQRApp).applicationSccope,
                 this.authenticationLauncher,
                 this.decryptionAuthenticationLauncher
             )

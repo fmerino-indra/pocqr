@@ -64,18 +64,21 @@ dependencies {
     kapt(libs.androidx.hilt.compiler)
 
     // QR
-    implementation (libs.zxing.android.embedded)
+//    implementation (libs.zxing.android.embedded)
+    implementation(project(":qr"))
 
     // JSON
     implementation(libs.kotlinx.serialization.json)
 
     // Biometric
-    implementation(libs.androidx.biometric)
+//    implementation(libs.androidx.biometric)
     // Jetpack Security
-    implementation(libs.androidx.security.crypto.ktx)
+//    implementation(libs.androidx.security.crypto.ktx)
+    // Cryptography
+    implementation(project(":cryptography"))
 
     // DataStore
-    implementation(libs.androidx.datastore.preferences)
-    implementation(libs.androidx.datastore.core)
-    implementation(libs.androidx.datastore.preferences.core)
+//    implementation(libs.androidx.datastore.preferences)
+//    implementation(libs.androidx.datastore.core)
+//    implementation(libs.androidx.datastore.preferences.core)
 }

@@ -3,7 +3,7 @@ package org.fmm.communitymgmt.ui.security.util
 import androidx.biometric.BiometricPrompt
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
-import org.fmm.pocqr.R
+import org.fmm.cryptography.R
 
 class BiometricHelper (
     private val activity: FragmentActivity,

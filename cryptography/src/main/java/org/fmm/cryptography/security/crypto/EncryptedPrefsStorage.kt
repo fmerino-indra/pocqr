@@ -1,9 +1,8 @@
 package org.fmm.pocqr.security.crypto
 
 import android.content.Context
-import org.fmm.pocqr.R
 import javax.inject.Inject
-
+import org.fmm.cryptography.R
 class EncryptedPrefsStorage @Inject constructor (context:Context) {
     private var secureStorage: SecureStorage = SecureStorage(context, context.getString(R.string
     .secure_prefs_name))

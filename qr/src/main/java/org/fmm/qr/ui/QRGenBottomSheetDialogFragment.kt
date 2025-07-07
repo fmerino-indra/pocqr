@@ -1,4 +1,4 @@
-package org.fmm.pocqr.ui.qr
+package org.fmm.qr.ui
 
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -9,8 +9,8 @@ import android.view.ViewGroup
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
-import org.fmm.pocqr.R
-import org.fmm.pocqr.databinding.FragmentQRGenBinding
+import org.fmm.qr.R
+import org.fmm.qr.databinding.FragmentQRGenBinding
 
 class QRGenBottomSheetDialogFragment (): BottomSheetDialogFragment() {
     private var _binding: FragmentQRGenBinding? = null

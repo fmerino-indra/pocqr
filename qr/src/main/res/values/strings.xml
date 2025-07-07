@@ -1,0 +1,8 @@
+<resources>
+    <string name="scan_qr_code">Scan QR Code</string>
+    <string name="start_scan">Start Scan</string>
+    <string name="stop_scan">Stop Scan</string>
+
+    <string name="qrException">An exception has occurred while QR generation.</string>
+
+</resources>

@@ -12,22 +12,20 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
-import org.fmm.pocqr.PocQRApp
 import org.fmm.pocqr.security.crypto.dto.AuthenticationCapabilitiesData
 import org.fmm.pocqr.security.crypto.dto.EncryptedData
 import org.fmm.pocqr.security.crypto.ui.BiometricOperationCryptoObject
 import org.fmm.pocqr.security.crypto.ui.BiometricPromptHelper
-import org.fmm.pocqr.security.crypto.ui.PinPromptHelper
 import org.fmm.pocqr.security.crypto.ui.PinOperationCryptoObject
-import org.fmm.pocqr.security.crypto.ui.PinPromptHelperV2
+import org.fmm.pocqr.security.crypto.ui.PinPromptHelper
 import java.security.GeneralSecurityException
 import java.security.InvalidAlgorithmParameterException
 import java.security.NoSuchAlgorithmException
@@ -42,6 +40,7 @@ import javax.crypto.spec.SecretKeySpec
 class AsymmetricRSAHybridCipherManager(
     private val context: Context,
     private val activity: FragmentActivity,
+    private val applicationSccope: CoroutineScope,
     signingAuthenticationLauncher: ActivityResultLauncher<Intent>,
     decryptionAuthenticationLauncher: ActivityResultLauncher<Intent>
 //    ,
@@ -257,7 +256,8 @@ class AsymmetricRSAHybridCipherManager(
         if (resultCode == Activity.RESULT_OK) {
             Log.d("AsymmetricRSAHybridCipherManager::handlePinSignature", "Ahora se puede usar la" +
                     " clave")
-            (activity.application as PocQRApp).applicationSccope.launch {
+//            (activity.application as PocQRApp).applicationSccope.launch {
+            applicationSccope.launch {
                 try {
 
                     val sig = (lastCryptoOperationObject as PinOperationCryptoObject
@@ -523,8 +523,9 @@ class AsymmetricRSAHybridCipherManager(
             Log.d("AsymmetricRSAHybridCipherManager::handlePinDecryption", "Ahora se puede usar " +
                     "la clave")
 
-            (activity.application as PocQRApp).applicationSccope.launch {
-                try {
+//            (activity.application as PocQRApp).applicationSccope.launch {
+            applicationSccope.launch {
+            try {
 
 /*
                     val cip = (lastCryptoOperationObject as PinOperationCryptoObject
@@ -590,6 +591,8 @@ class AsymmetricRSAHybridCipherManager(
         }
 
     }
+
+/*
     fun handlePinDecryptionOld(resultCode: Int) {
         if (resultCode == Activity.RESULT_OK) {
             Log.d("AsymmetricRSAHybridCipherManager::handlePinDecryption", "Ahora se puede usar " +
@@ -623,6 +626,7 @@ class AsymmetricRSAHybridCipherManager(
         }
 
     }
+*/
     private fun showPinPromptForDecrypt(dataToDecrypt: ByteArray, privateKey: PrivateKey) {
         this.dataToDecrypt=dataToDecrypt
         lastCryptoOperationObject = PinOperationCryptoObject.PinCipherObject(encryptionUtil

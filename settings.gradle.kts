@@ -21,4 +21,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "POCQR"
 include(":app")
- 
+include(":qr")
+include(":cryptography")

@@ -1,4 +1,4 @@
-package org.fmm.pocqr.ui.qr
+package org.fmm.qr.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -13,9 +13,9 @@ import androidx.core.view.isVisible
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
-import org.fmm.pocqr.databinding.FragmentQRReaderBinding
-import org.fmm.pocqr.ui.util.playBeep
-import org.fmm.pocqr.ui.util.vibrate
+import org.fmm.qr.databinding.FragmentQRReaderBinding
+import org.fmm.qr.ui.util.playBeep
+import org.fmm.qr.ui.util.vibrate
 
 class QRReaderBottomSheetDialogFragment (private val callback: (String) -> Unit):
 BottomSheetDialogFragment() {
@@ -92,14 +92,16 @@ BottomSheetDialogFragment() {
         stoppedState()
         binding.barcodeScannerView.apply {
             pause()
-            visibility = View.GONE
+//            View.setVisibility = View.GONE - Dejó de funcionar
+            isVisible = false
         }
     }
 
     private fun startScanner() {
         scanningState()
         binding.barcodeScannerView.apply {
-            visibility = View.VISIBLE
+//            View.setVisibility = View.VISIBLE
+            isVisible = true
             decodeContinuous(barcodeCallback)
             resume()
         }
@@ -118,7 +120,7 @@ BottomSheetDialogFragment() {
 
     override fun onResume() {
         super.onResume()
-        if(binding.barcodeScannerView.visibility == View.VISIBLE) {
+        if(binding.barcodeScannerView.isVisible) {
             binding.barcodeScannerView.resume()
         }
     }
