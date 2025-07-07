@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+/app/src/main/assets/pp.txt
+/app/src/main/assets/qr-brother.json
+/app/src/main/assets/qr-read-brother.json
+/app/src/main/assets/qr-read-responsible.json
+/app/src/main/assets/qr-responsible.json
