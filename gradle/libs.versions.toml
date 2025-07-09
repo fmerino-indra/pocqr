@@ -1,5 +1,6 @@
 [versions]
 agp = "8.11.0"
+cryptographyUtil = "0.0.1"
 javaxInject = "1"
 kotlin = "2.1.20"
 coreKtx = "1.16.0"
@@ -25,6 +26,7 @@ navigationFragmentKtx = "2.9.0"
 navigationUiKtx = "2.9.0"
 
 #QR
+qrUtil = "0.0.1"
 zxingAndroidEmbedded = "4.3.0"
 
 #JSON
@@ -70,6 +72,10 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 #Jetpack Security
 androidx-security-crypto-ktx = { module = "androidx.security:security-crypto-ktx", version.ref = "securityCryptoKtx" }
+
+cryptography-util = { module = "org.fmm.cryptography-util:cryptography-util", version.ref = "cryptographyUtil" }
+qr-util = { module = "org.fmm.qr-util:qr-util", version.ref = "qrUtil" }
+
 
 #DataStore
 androidx-datastore-core = { module = "androidx.datastore:datastore-core", version.ref = "datastorePreferences" }

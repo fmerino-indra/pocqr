@@ -63,9 +63,11 @@ dependencies {
     kapt(libs.hilt.android.compiler)
     kapt(libs.androidx.hilt.compiler)
 
+    implementation(libs.qr.util)
+    implementation(libs.cryptography.util)
     // QR
 //    implementation (libs.zxing.android.embedded)
-    implementation(project(":qr"))
+//    implementation(project(":qr"))
 
     // JSON
     implementation(libs.kotlinx.serialization.json)
@@ -75,7 +77,7 @@ dependencies {
     // Jetpack Security
 //    implementation(libs.androidx.security.crypto.ktx)
     // Cryptography
-    implementation(project(":cryptography"))
+//    implementation(project(":cryptography"))
 
     // DataStore
 //    implementation(libs.androidx.datastore.preferences)
